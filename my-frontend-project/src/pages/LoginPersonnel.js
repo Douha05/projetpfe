@@ -1,0 +1,227 @@
+import React, { useState } from "react";
+import { useNavigate, Link, useLocation } from "react-router-dom";
+import "./LoginPersonnel.css";
+
+const LoginPersonnel = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const successMsg = location.state?.message || "";
+
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+    rememberMe: false,
+  });
+
+  const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [serverError, setServerError] = useState("");
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
+    setErrors((prev) => ({ ...prev, [name]: "" }));
+  };
+
+  const validate = () => {
+    const newErrors = {};
+    if (!formData.email.trim()) newErrors.email = "L'email est requis";
+    else if (!/\S+@\S+\.\S+/.test(formData.email))
+      newErrors.email = "Email invalide";
+    if (!formData.password) newErrors.password = "Le mot de passe est requis";
+    return newErrors;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setServerError("");
+
+    const validationErrors = validate();
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetch("http://localhost:3001/api/users/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.status === "ok") {
+        const { token, user } = data;
+
+        // Vérifier que c'est bien un personnel (pas un client)
+        if (user.role === "client") {
+          setServerError("Accès refusé. Utilisez le portail client.");
+          setLoading(false);
+          return;
+        }
+
+        // Sauvegarder token et user
+        if (formData.rememberMe) {
+          localStorage.setItem("token", token);
+          localStorage.setItem("user", JSON.stringify(user));
+        } else {
+          sessionStorage.setItem("token", token);
+          sessionStorage.setItem("user", JSON.stringify(user));
+        }
+
+        // Redirection selon le rôle retourné par l'API
+        if (user.role === "admin") {
+          navigate("/admin/dashboard");
+        } else if (user.role === "team_lead") {
+          navigate("/team-lead/dashboard");
+        } else if (user.role === "support") {
+          navigate("/support/dashboard");
+        } else {
+          navigate("/dashboard");
+        }
+
+      } else {
+        setServerError(data.msg || "Email ou mot de passe incorrect");
+      }
+    } catch (err) {
+      setServerError("Impossible de contacter le serveur.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="lp-page">
+
+      {/* Logo + Titre */}
+      <div className="lp-brand">
+        <div className="brand-logo">
+          <svg viewBox="0 0 24 24" fill="white" width="28" height="28">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+          </svg>
+        </div>
+        <h1 className="brand-title">Portail Personnel</h1>
+        <p className="brand-subtitle">Espace de gestion des tickets</p>
+      </div>
+
+      {/* Card */}
+      <div className="lp-card">
+
+        <div className="lp-header">
+          <h2>Connexion</h2>
+          <p>Entrez vos identifiants professionnels</p>
+        </div>
+
+        {successMsg && <div className="alert alert-success">{successMsg}</div>}
+        {serverError && <div className="alert alert-error">{serverError}</div>}
+
+        {/* Info rôle automatique */}
+        <div className="info-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <span>Votre rôle sera reconnu automatiquement après connexion</span>
+        </div>
+
+        <form onSubmit={handleSubmit} noValidate>
+
+          {/* Email */}
+          <div className="form-group">
+            <label>Adresse e-mail professionnelle</label>
+            <div className={`input-box ${errors.email ? "input-box--error" : ""}`}>
+              <svg className="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                <polyline points="22,6 12,13 2,6"/>
+              </svg>
+              <input
+                type="email"
+                name="email"
+                placeholder="prenom.nom@entreprise.com"
+                value={formData.email}
+                onChange={handleChange}
+                autoComplete="email"
+              />
+            </div>
+            {errors.email && <span className="error-msg">{errors.email}</span>}
+          </div>
+
+          {/* Mot de passe */}
+          <div className="form-group">
+            <label>Mot de passe</label>
+            <div className={`input-box ${errors.password ? "input-box--error" : ""}`}>
+              <svg className="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+              <input
+                type="password"
+                name="password"
+                placeholder="••••••••"
+                value={formData.password}
+                onChange={handleChange}
+                autoComplete="current-password"
+              />
+            </div>
+            {errors.password && <span className="error-msg">{errors.password}</span>}
+          </div>
+
+          {/* Se souvenir + Mot de passe oublié */}
+          <div className="login-options">
+            <label className="remember-label">
+              <input
+                type="checkbox"
+                name="rememberMe"
+                checked={formData.rememberMe}
+                onChange={handleChange}
+              />
+              <span>Se souvenir de moi</span>
+            </label>
+            <Link to="/forgot-password" className="forgot-link">
+              Mot de passe oublié ?
+            </Link>
+          </div>
+
+          {/* Bouton */}
+          <button type="submit" className="btn-submit" disabled={loading}>
+            {loading ? "Connexion en cours..." : "Se connecter"}
+          </button>
+
+        </form>
+
+        {/* Séparateur */}
+        <div className="divider">
+          <span>NOUVEAU MEMBRE ?</span>
+        </div>
+
+        <Link to="/register-personnel" className="btn-register">
+          Créer un compte personnel
+        </Link>
+
+      </div>
+
+      {/* Footer */}
+      <div className="lp-footer">
+        <p>
+          Besoin d'aide ?{" "}
+          <a href="mailto:support@devapp.com" className="footer-link">
+            Contactez l'administrateur
+          </a>
+        </p>
+        <p>© 2026 devapp. Tous droits réservés.</p>
+      </div>
+
+    </div>
+  );
+};
+
+export default LoginPersonnel;

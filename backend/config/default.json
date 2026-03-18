@@ -1,0 +1,8 @@
+{
+  "mongoURI": "mongodb://localhost:27017/devapp",
+  "jwtSecret": "devapp_secret_jwt_super_securise_2024",
+  "tokenExpire": "7d",
+  "port": 3001,
+  "emailUser": "votre.email@gmail.com",
+  "emailPass": "jvew ngqh ilpm qlml"
+}
