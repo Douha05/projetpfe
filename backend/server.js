@@ -15,6 +15,7 @@ app.use("/api/users", require("./routes/api/users"));
 app.use("/api/personnel", require("./routes/api/personnel"));
 app.use("/api/tickets", require("./routes/api/tickets"));
 app.use("/api/notifications", require("./routes/api/notifications"));
+app.use("/api/admin", require("./routes/api/admin"));
 
 app.get("/", (req, res) => res.json({ status: "ok", msg: "🚀 devapp API is running" }));
 

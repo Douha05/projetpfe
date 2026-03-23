@@ -1,0 +1,412 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'DM Sans', sans-serif; background: #f4f6f9; }
+
+.ad-layout { display: flex; min-height: 100vh; }
+
+/* ---- SIDEBAR ---- */
+.ad-sidebar {
+  width: 240px; background: #111827;
+  display: flex; flex-direction: column;
+  padding: 24px 16px; position: fixed;
+  top: 0; left: 0; height: 100vh;
+}
+.sidebar-brand {
+  display: flex; align-items: center; gap: 10px;
+  color: #fff; font-size: 16px; font-weight: 700;
+  margin-bottom: 32px; padding: 0 8px;
+}
+.sidebar-logo { font-size: 24px; }
+.sidebar-nav { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px; border-radius: 10px; border: none;
+  background: transparent; color: #9ca3af; font-size: 14px;
+  font-weight: 500; font-family: 'DM Sans', sans-serif;
+  cursor: pointer; text-align: left; width: 100%; transition: all 0.2s;
+}
+.nav-item:hover { background: #1f2937; color: #fff; }
+.nav-item.active { background: #6366f1; color: #fff; }
+.sidebar-user {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px; background: #1f2937; border-radius: 10px; margin-top: auto;
+}
+.user-avatar {
+  width: 36px; height: 36px; background: #6366f1; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; color: #fff;
+  flex-shrink: 0; text-transform: uppercase;
+}
+.user-info { flex: 1; overflow: hidden; }
+.user-name { display: block; font-size: 13px; font-weight: 600; color: #fff; }
+.user-role { font-size: 11px; color: #6b7280; }
+.btn-logout { background: none; border: none; color: #6b7280; cursor: pointer; font-size: 18px; transition: color 0.2s; }
+.btn-logout:hover { color: #ef4444; }
+
+/* ---- MAIN ---- */
+.ad-main { margin-left: 240px; padding: 28px; flex: 1; }
+
+/* ---- CARD ---- */
+.ad-card {
+  background: #fff; border-radius: 14px;
+  padding: 28px; box-shadow: 0 1px 8px rgba(0,0,0,0.06);
+}
+.card-title { font-size: 20px; font-weight: 700; color: #111827; margin-bottom: 6px; }
+.card-subtitle { font-size: 14px; color: #6b7280; margin-bottom: 24px; }
+
+/* ---- FORM ---- */
+.form-group { margin-bottom: 18px; }
+.form-group label { display: block; font-size: 14px; font-weight: 600; color: #111827; margin-bottom: 7px; }
+.req { color: #ef4444; }
+.form-input {
+  width: 100%; padding: 11px 14px; border: 1.5px solid #e5e7eb;
+  border-radius: 10px; font-size: 14px; font-family: 'DM Sans', sans-serif;
+  color: #111827; background: #f9fafb; outline: none; transition: all 0.2s;
+}
+.form-input:focus { border-color: #6366f1; background: #fff; box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+/* ---- ROLE SELECTOR ---- */
+.role-selector { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.role-btn {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 16px; border: 1.5px solid #e5e7eb; border-radius: 10px;
+  background: #f9fafb; cursor: pointer; transition: all 0.2s; gap: 4px;
+}
+.role-btn:hover { border-color: #6366f1; background: #eef2ff; }
+.role-btn-active { border-color: #6366f1; background: #eef2ff; }
+.role-icon { font-size: 24px; margin-bottom: 4px; }
+.role-name { font-size: 14px; font-weight: 600; color: #111827; }
+.role-desc { font-size: 12px; color: #6b7280; text-align: center; }
+
+/* ---- INFO BOX ---- */
+.info-box {
+  display: flex; align-items: flex-start; gap: 10px;
+  background: #f0fdf4; border: 1px solid #bbf7d0;
+  border-radius: 10px; padding: 14px; margin-bottom: 20px;
+}
+.info-box span { font-size: 18px; flex-shrink: 0; }
+.info-box p { font-size: 13px; color: #15803d; }
+
+/* ---- ALERTS ---- */
+.alert { padding: 12px 16px; border-radius: 10px; font-size: 14px; margin-bottom: 18px; font-weight: 500; }
+.alert-error { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+.alert-success { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+
+/* ---- BUTTON ---- */
+.btn-primary {
+  width: 100%; padding: 13px; background: #111827; color: #fff;
+  border: none; border-radius: 10px; font-size: 15px; font-weight: 700;
+  font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.2s;
+}
+.btn-primary:hover { background: #1f2937; }
+
+/* ---- TABLE ---- */
+.users-table-wrapper { overflow-x: auto; }
+.users-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.users-table th {
+  text-align: left; padding: 12px 14px;
+  background: #f9fafb; color: #6b7280;
+  font-size: 12px; font-weight: 600; text-transform: uppercase;
+  border-bottom: 1px solid #f3f4f6;
+}
+.users-table td { padding: 14px; border-bottom: 1px solid #f9fafb; vertical-align: middle; }
+.users-table tr:hover td { background: #fafafa; }
+
+.user-cell { display: flex; align-items: center; gap: 10px; }
+.user-cell-avatar {
+  width: 34px; height: 34px; background: #e0e7ff; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; color: #4f46e5; text-transform: uppercase;
+}
+.user-cell-name { font-size: 14px; font-weight: 600; color: #111827; }
+.user-cell-dept { font-size: 12px; color: #9ca3af; }
+.email-cell { font-size: 13px; color: #6b7280; }
+
+/* ---- ROLE BADGES ---- */
+.role-badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+.role-admin { background: #ede9fe; color: #6d28d9; }
+.role-lead { background: #fef3c7; color: #d97706; }
+.role-support { background: #dbeafe; color: #1d4ed8; }
+.role-client { background: #f3f4f6; color: #4b5563; }
+
+.role-select {
+  padding: 6px 10px; border: 1.5px solid #e5e7eb; border-radius: 8px;
+  font-size: 13px; font-family: 'DM Sans', sans-serif; background: #f9fafb;
+  color: #111827; cursor: pointer; outline: none;
+}
+.role-select:focus { border-color: #6366f1; }
+
+/* ---- STATUS ---- */
+.status-badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+.status-active { background: #dcfce7; color: #16a34a; }
+.status-inactive { background: #fee2e2; color: #dc2626; }
+
+.btn-toggle {
+  padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 600;
+  cursor: pointer; border: none; font-family: 'DM Sans', sans-serif; transition: all 0.2s;
+}
+.btn-toggle-off { background: #fee2e2; color: #dc2626; }
+.btn-toggle-off:hover { background: #fecaca; }
+.btn-toggle-on { background: #dcfce7; color: #16a34a; }
+.btn-toggle-on:hover { background: #bbf7d0; }
+
+.loading { text-align: center; color: #9ca3af; padding: 40px; }
+
+/* ============ ACTION BUTTONS ============ */
+.action-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.btn-delete {
+  padding: 6px 12px; border-radius: 8px;
+  font-size: 12px; font-weight: 600;
+  cursor: pointer; border: none;
+  font-family: 'DM Sans', sans-serif;
+  background: #fee2e2; color: #dc2626;
+  transition: all 0.2s;
+}
+.btn-delete:hover { background: #fecaca; }
+
+/* ============ MODAL ============ */
+.modal-overlay {
+  position: fixed; top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.5);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000;
+}
+.modal-box {
+  background: #fff; border-radius: 16px;
+  padding: 32px; max-width: 420px; width: 90%;
+  text-align: center;
+}
+.modal-icon { font-size: 40px; margin-bottom: 16px; }
+.modal-box h3 { font-size: 20px; font-weight: 700; color: #111827; margin-bottom: 10px; }
+.modal-box p { font-size: 14px; color: #6b7280; margin-bottom: 24px; line-height: 1.6; }
+.modal-actions { display: flex; gap: 12px; justify-content: center; }
+.btn-cancel {
+  padding: 10px 24px; border-radius: 8px;
+  border: 1.5px solid #e5e7eb; background: #fff;
+  color: #374151; font-size: 14px; font-weight: 600;
+  cursor: pointer; font-family: 'DM Sans', sans-serif;
+  transition: all 0.2s;
+}
+.btn-cancel:hover { background: #f9fafb; }
+.btn-delete-confirm {
+  padding: 10px 24px; border-radius: 8px;
+  border: none; background: #dc2626;
+  color: #fff; font-size: 14px; font-weight: 600;
+  cursor: pointer; font-family: 'DM Sans', sans-serif;
+  transition: all 0.2s;
+}
+.btn-delete-confirm:hover { background: #b91c1c; }
+
+/* ============ MODAL EDIT ============ */
+.modal-edit { max-width: 560px; text-align: left; }
+.modal-edit h3 { font-size: 18px; font-weight: 700; color: #111827; margin-bottom: 20px; }
+
+.reset-password-box {
+  background: #fef3c7; border: 1px solid #fde68a;
+  border-radius: 10px; padding: 14px; margin: 16px 0;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.reset-password-box p { font-size: 13px; color: #92400e; font-weight: 500; }
+.btn-reset-password {
+  padding: 8px 16px; background: #f59e0b; color: #fff;
+  border: none; border-radius: 8px; font-size: 13px; font-weight: 600;
+  cursor: pointer; white-space: nowrap; font-family: 'DM Sans', sans-serif;
+  transition: all 0.2s;
+}
+.btn-reset-password:hover { background: #d97706; }
+
+.btn-save {
+  padding: 10px 24px; border-radius: 8px;
+  border: none; background: #22c55e;
+  color: #fff; font-size: 14px; font-weight: 600;
+  cursor: pointer; font-family: 'DM Sans', sans-serif;
+  transition: all 0.2s;
+}
+.btn-save:hover { background: #16a34a; }
+
+.btn-edit {
+  padding: 6px 12px; border-radius: 8px;
+  font-size: 12px; font-weight: 600; cursor: pointer;
+  border: none; font-family: 'DM Sans', sans-serif;
+  background: #ede9fe; color: #6d28d9; transition: all 0.2s;
+}
+.btn-edit:hover { background: #ddd6fe; }
+
+/* ============ MODAL EDIT ============ */
+.modal-edit {
+  max-width: 560px !important;
+  text-align: left !important;
+}
+.modal-edit h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 20px;
+}
+
+/* ---- Reset password box ---- */
+.reset-password-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 20px;
+}
+.reset-password-box p {
+  font-size: 14px;
+  font-weight: 600;
+  color: #92400e;
+}
+.btn-reset-password {
+  padding: 8px 16px;
+  background: #f59e0b;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  transition: all 0.2s;
+}
+.btn-reset-password:hover { background: #d97706; }
+
+/* ---- Edit button ---- */
+.btn-edit {
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  font-family: 'DM Sans', sans-serif;
+  background: #e0e7ff;
+  color: #4338ca;
+  transition: all 0.2s;
+}
+.btn-edit:hover { background: #c7d2fe; }
+
+/* ---- Save button ---- */
+.btn-save {
+  padding: 10px 24px;
+  border-radius: 8px;
+  border: none;
+  background: #22c55e;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  transition: all 0.2s;
+}
+.btn-save:hover { background: #16a34a; }
+
+/* ============ MODAL EDIT ============ */
+.modal-edit { max-width: 560px; text-align: left; }
+.modal-edit h3 { font-size: 18px; font-weight: 700; color: #111827; margin-bottom: 20px; }
+
+/* ============ RESET PASSWORD BOX ============ */
+.reset-password-box {
+  display: flex; align-items: center; justify-content: space-between;
+  background: #fef3c7; border: 1px solid #fde68a;
+  border-radius: 10px; padding: 14px 16px; margin-bottom: 20px;
+}
+.reset-password-box p { font-size: 14px; font-weight: 600; color: #92400e; }
+.btn-reset-password {
+  padding: 8px 16px; background: #f59e0b; color: #fff;
+  border: none; border-radius: 8px; font-size: 13px;
+  font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif;
+  transition: all 0.2s;
+}
+.btn-reset-password:hover { background: #d97706; }
+
+/* ============ BTN SAVE ============ */
+.btn-save {
+  padding: 10px 24px; border-radius: 8px;
+  border: none; background: #22c55e;
+  color: #fff; font-size: 14px; font-weight: 600;
+  cursor: pointer; font-family: 'DM Sans', sans-serif;
+  transition: all 0.2s;
+}
+.btn-save:hover { background: #16a34a; }
+
+/* ============ BTN EDIT ============ */
+.btn-edit {
+  padding: 6px 12px; border-radius: 8px;
+  font-size: 12px; font-weight: 600;
+  cursor: pointer; border: 1.5px solid #e5e7eb;
+  font-family: 'DM Sans', sans-serif;
+  background: #fff; color: #374151;
+  transition: all 0.2s;
+}
+.btn-edit:hover { border-color: #6366f1; color: #6366f1; background: #eef2ff; }
+
+/* ---- EDIT MODAL ---- */
+.modal-edit { max-width: 560px; text-align: left; }
+.modal-edit h3 { font-size: 18px; font-weight: 700; color: #111827; margin-bottom: 20px; }
+.reset-password-box {
+  display: flex; align-items: center; justify-content: space-between;
+  background: #fef3c7; border: 1px solid #fde68a;
+  border-radius: 10px; padding: 14px 16px; margin-bottom: 20px;
+}
+.reset-password-box p { font-size: 14px; font-weight: 600; color: #92400e; }
+.btn-reset-password {
+  padding: 8px 16px; background: #f59e0b; color: #fff;
+  border: none; border-radius: 8px; font-size: 13px;
+  font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif;
+  transition: all 0.2s; white-space: nowrap;
+}
+.btn-reset-password:hover { background: #d97706; }
+.btn-save {
+  padding: 10px 24px; border-radius: 8px; border: none;
+  background: #22c55e; color: #fff; font-size: 14px;
+  font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif;
+  transition: all 0.2s;
+}
+.btn-save:hover { background: #16a34a; }
+.btn-edit {
+  padding: 6px 12px; border-radius: 8px; font-size: 12px;
+  font-weight: 600; cursor: pointer; border: none;
+  font-family: 'DM Sans', sans-serif;
+  background: #eff6ff; color: #1d4ed8; transition: all 0.2s;
+}
+.btn-edit:hover { background: #dbeafe; }
+
+/* ============ DEMANDES RESET ============ */
+.notif-count {
+  background: #ef4444;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 20px;
+  margin-left: auto;
+}
+.demandes-list { display: flex; flex-direction: column; gap: 12px; }
+.demande-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px; border: 1.5px solid #fde68a;
+  background: #fffbeb; border-radius: 12px; gap: 16px;
+}
+.demande-info { display: flex; align-items: center; gap: 12px; }
+.demande-name { font-size: 14px; font-weight: 600; color: #111827; margin-bottom: 2px; }
+.demande-email { font-size: 12px; color: #6b7280; margin-bottom: 2px; }
+.demande-role { font-size: 12px; color: #d97706; font-weight: 500; margin-bottom: 2px; }
+.demande-date { font-size: 11px; color: #9ca3af; }
+.btn-reset-now {
+  padding: 10px 18px; background: #111827; color: #fff;
+  border: none; border-radius: 8px; font-size: 13px;
+  font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif;
+  transition: all 0.2s; white-space: nowrap; flex-shrink: 0;
+}
+.btn-reset-now:hover { background: #1f2937; }
+.empty-demandes {
+  text-align: center; padding: 40px;
+  font-size: 15px; color: #16a34a; font-weight: 500;
+}

@@ -13,7 +13,6 @@ body { font-family: 'DM Sans', sans-serif; }
   background: linear-gradient(160deg, #f0fdf4 0%, #f8fafc 50%, #f0f9ff 100%);
 }
 
-/* ---- Brand ---- */
 .lp-brand { text-align: center; margin-bottom: 28px; }
 
 .brand-logo {
@@ -37,7 +36,6 @@ body { font-family: 'DM Sans', sans-serif; }
 }
 .brand-subtitle { font-size: 14px; color: #6b7280; }
 
-/* ---- Card ---- */
 .lp-card {
   background: #fff;
   border-radius: 18px;
@@ -56,7 +54,6 @@ body { font-family: 'DM Sans', sans-serif; }
 }
 .lp-header p { font-size: 14px; color: #6b7280; }
 
-/* ---- Alerts ---- */
 .alert {
   padding: 12px 16px;
   border-radius: 10px;
@@ -67,7 +64,6 @@ body { font-family: 'DM Sans', sans-serif; }
 .alert-error { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
 .alert-success { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
 
-/* ---- Info box rôle automatique ---- */
 .info-box {
   display: flex;
   align-items: center;
@@ -83,7 +79,6 @@ body { font-family: 'DM Sans', sans-serif; }
 }
 .info-box svg { stroke: #1d4ed8; flex-shrink: 0; }
 
-/* ---- Form ---- */
 .form-group { margin-bottom: 18px; }
 .form-group label {
   display: block;
@@ -137,7 +132,6 @@ body { font-family: 'DM Sans', sans-serif; }
   font-weight: 500;
 }
 
-/* ---- Options ---- */
 .login-options {
   display: flex;
   align-items: center;
@@ -158,15 +152,13 @@ body { font-family: 'DM Sans', sans-serif; }
   accent-color: #16a34a;
   cursor: pointer;
 }
-.forgot-link {
-  font-size: 14px;
-  color: #16a34a;
-  font-weight: 600;
-  text-decoration: none;
-}
-.forgot-link:hover { text-decoration: underline; }
 
-/* ---- Bouton ---- */
+/* ---- Remplace forgot-link ---- */
+.forgot-info {
+  font-size: 13px;
+  color: #6b7280;
+}
+
 .btn-submit {
   width: 100%;
   padding: 15px;
@@ -184,7 +176,6 @@ body { font-family: 'DM Sans', sans-serif; }
 .btn-submit:hover:not(:disabled) { background: #1f2937; }
 .btn-submit:disabled { opacity: 0.65; cursor: not-allowed; }
 
-/* ---- Séparateur ---- */
 .divider {
   display: flex;
   align-items: center;
@@ -204,24 +195,32 @@ body { font-family: 'DM Sans', sans-serif; }
   letter-spacing: 1px;
 }
 
-/* ---- Bouton register ---- */
-.btn-register {
-  display: block;
-  width: 100%;
-  padding: 13px;
-  background: transparent;
-  color: #111827;
-  border: 1.5px solid #d1d5db;
-  border-radius: 10px;
-  font-size: 15px;
-  font-weight: 700;
-  text-align: center;
-  text-decoration: none;
-  transition: all 0.2s;
+/* ---- Eye button ---- */
+.eye-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: #9ca3af;
+  display: flex;
+  align-items: center;
+  transition: color 0.2s;
+  flex-shrink: 0;
 }
-.btn-register:hover { border-color: #16a34a; background: #f0fdf4; color: #16a34a; }
+.eye-btn:hover { color: #374151; }
 
-/* ---- Footer ---- */
+/* ---- Contact admin ---- */
+.contact-admin {
+  text-align: center;
+  font-size: 13px;
+  color: #6b7280;
+  margin-top: 16px;
+  padding: 12px;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
 .lp-footer { margin-top: 28px; text-align: center; }
 .lp-footer p { font-size: 13px; color: #9ca3af; margin-bottom: 4px; }
 .footer-link { color: #16a34a; font-weight: 600; text-decoration: none; }

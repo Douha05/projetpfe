@@ -5,7 +5,8 @@ const UserSchema = new mongoose.Schema(
     nom: { type: String, required: true, trim: true },
     prenom: { type: String, required: true, trim: true },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
-    telephone: { type: String, required: true, trim: true },
+    telephone: { type: String, required: true },
+    departement: { type: String, default: "" },
     password: { type: String, required: true },
     role: {
       type: String,
@@ -13,6 +14,7 @@ const UserSchema = new mongoose.Schema(
       default: "client",
     },
     isActive: { type: Boolean, default: true },
+    mustChangePassword: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
