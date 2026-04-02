@@ -7,7 +7,15 @@ const NotificationSchema = new mongoose.Schema(
     message: { type: String, required: true },
     type: {
       type: String,
-      enum: ["ticket_resolu", "nouveau_commentaire", "ticket_assigne", "confirmation_demandee"],
+      enum: [
+        "ticket_resolu",
+        "nouveau_commentaire",
+        "ticket_assigne",
+        "confirmation_demandee",
+        "nouveau_ticket",
+        "statut_change",
+        "ticket_escalade",
+      ],
       required: true,
     },
     lu: { type: Boolean, default: false },

@@ -67,6 +67,13 @@ const Login = () => {
           sessionStorage.setItem("token", data.token);
           sessionStorage.setItem("user", JSON.stringify(data.user));
         }
+
+        // Première connexion → changer mot de passe
+        if (data.user.mustChangePassword) {
+          navigate("/change-password"); // ✅ corrigé
+          return;
+        }
+
         navigate("/client/dashboard");
       } else {
         setServerError(data.msg || "Email ou mot de passe incorrect");
@@ -183,9 +190,9 @@ const Login = () => {
           <span>NOUVEAU CLIENT ?</span>
         </div>
 
-        <Link to="/register" className="btn-register">
-          Créer un compte
-        </Link>
+        <p className="contact-admin-client">
+          Pour créer un compte, contactez votre administrateur.
+        </p>
 
       </div>
 
