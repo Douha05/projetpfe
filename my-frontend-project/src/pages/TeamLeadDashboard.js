@@ -11,7 +11,6 @@ const ticketRef = (id) => id ? `#${id.slice(-6).toUpperCase()}` : "";
 const initials  = (p, n) => `${p?.[0] || ""}${n?.[0] || ""}`.toUpperCase();
 const now       = () => new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
 
-/* ---- ICONS ---- */
 const Ico = ({ d, size = 14 }) => (
   <svg width={size} height={size} viewBox="0 0 16 16" fill="currentColor">
     <path fillRule="evenodd" d={d} />
@@ -23,9 +22,11 @@ const D = {
   agents:   "M7 14s-1 0-1-1 1-4 5-4 5 3 5 4-1 1-1 1H7zm4-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M5.216 14A2.238 2.238 0 0 1 5 13c0-1.355.68-2.75 1.936-3.72A6.325 6.325 0 0 0 5 9c-4 0-5 3-5 4s1 1 1 1h4.216z M4.5 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z",
   clients:  "M3 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1H3zm5-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z",
   create:   "M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16zM8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z",
+  suivi:    "M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V4zm2-1a1 1 0 0 0-1 1v.217l7 4.2 7-4.2V4a1 1 0 0 0-1-1H2zm13 2.383-4.708 2.825L15 11.105V5.383zm-.034 6.876-5.64-3.471L8 9.583l-1.326-.795-5.64 3.47A1 1 0 0 0 2 13h12a1 1 0 0 0 .966-.741zM1 11.105l4.708-2.897L1 5.383v5.722z",
   logout:   "M10 12.5a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v2a.5.5 0 0 0 1 0v-2A1.5 1.5 0 0 0 9.5 2h-8A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-2a.5.5 0 0 0-1 0v2z M15.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708.708L14.293 7.5H5.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3z",
   brand:    "M1.5 3.5A1.5 1.5 0 0 1 3 2h9.982a1.5 1.5 0 0 1 1.498 1.5v2.5a.5.5 0 0 1-.5.5 1 1 0 0 0 0 2 .5.5 0 0 1 .5.5v2.5A1.5 1.5 0 0 1 12.982 13H3A1.5 1.5 0 0 1 1.5 11.5V8a.5.5 0 0 1 .5-.5 1 1 0 1 0 0-2 .5.5 0 0 1-.5-.5V3.5z",
   bell:     "M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2zM8 1.918l-.797.161A4.002 4.002 0 0 0 4 6c0 .628-.134 2.197-.459 3.742-.16.767-.376 1.566-.663 2.258h10.244c-.287-.692-.502-1.491-.663-2.258C12.134 8.197 12 6.628 12 6a4.002 4.002 0 0 0-3.203-3.921L8 1.918zM14.22 12c.223.447.481.801.78 1H1c.299-.199.557-.553.78-1C2.68 10.2 3 6.88 3 6c0-2.42 1.72-4.44 4.005-4.901a1 1 0 1 1 1.99 0A5.002 5.002 0 0 1 13 6c0 .88.32 4.2 1.22 6z",
+  back:     "M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z",
 };
 
 const NAV_ITEMS = [
@@ -33,6 +34,7 @@ const NAV_ITEMS = [
   { id: "tickets",      label: "Tous les tickets", icon: D.tickets   },
   { id: "agents",       label: "Agents support",   icon: D.agents    },
   { id: "clients",      label: "Clients",          icon: D.clients   },
+  { id: "suivi",        label: "Suivi clients",    icon: D.suivi     },
   { id: "creer-client", label: "Créer client",     icon: D.create    },
 ];
 
@@ -73,6 +75,18 @@ const KANBAN_COLS = [
   { statut: "solved",             label: "Résolu",      accent: "#16a34a", countBg: "#f0fdf4", countColor: "#15803d" },
 ];
 
+const ticketProgress = (statut) => {
+  const map = { ready_for_support: 0, in_progress: 33, ready_for_customer: 66, solved: 100, closed: 100, cancelled: 0, escalated: 20 };
+  return map[statut] ?? 0;
+};
+
+const progressColor = (pct) => {
+  if (pct === 100) return "#16a34a";
+  if (pct >= 66)   return "#7c3aed";
+  if (pct >= 33)   return "#2563eb";
+  return "#d97706";
+};
+
 export default function TeamLeadDashboard() {
   const navigate = useNavigate();
   const user = getUser(), token = getToken();
@@ -102,6 +116,8 @@ export default function TeamLeadDashboard() {
   const [serverMsg, setSM]      = useState("");
   const [serverErr, setSE]      = useState("");
   const [currentTime, setTime]  = useState(now());
+  const [selectedClient, setSelectedClient] = useState(null);
+  const [searchSuivi, setSearchSuivi]       = useState("");
 
   useEffect(() => {
     if (!token || !user || user.role !== "team_lead") { navigate("/login-personnel"); return; }
@@ -110,7 +126,7 @@ export default function TeamLeadDashboard() {
     return () => clearInterval(iv);
   }, []);
 
-  useEffect(() => { if (tab === "clients") fetchClients(); }, [tab]);
+  useEffect(() => { if (tab === "clients" || tab === "suivi") fetchClients(); }, [tab]);
 
   const loadAll = () => { fetchStats(); fetchTickets(); fetchAgents(); fetchNotifCount(); };
 
@@ -162,8 +178,7 @@ export default function TeamLeadDashboard() {
     });
     const d = await res.json();
     if (d.status === "ok") {
-      setGMsg("Ticket assigné avec succès.");
-      setAM(null); setSA(""); fetchTickets(); fetchStats();
+      setGMsg("Ticket assigné avec succès."); setAM(null); setSA(""); fetchTickets(); fetchStats();
       setTimeout(() => setGMsg(""), 3000);
     }
   };
@@ -221,33 +236,48 @@ export default function TeamLeadDashboard() {
     return c.prenom?.toLowerCase().includes(q) || c.nom?.toLowerCase().includes(q) || c.email?.toLowerCase().includes(q);
   });
 
-  const pageTitle = { overview: "Vue d'ensemble", tickets: "Tous les tickets", agents: "Agents support", clients: "Clients", "creer-client": "Créer un client" };
+  const clientsAvecStats = clients
+    .filter(c => {
+      const q = searchSuivi.toLowerCase();
+      return c.prenom?.toLowerCase().includes(q) || c.nom?.toLowerCase().includes(q) || c.email?.toLowerCase().includes(q);
+    })
+    .map(c => {
+      const ticketsClient = tickets.filter(t => t.reporter?._id === c._id || t.reporter === c._id);
+      const total    = ticketsClient.length;
+      const resolus  = ticketsClient.filter(t => ["solved","closed"].includes(t.statut)).length;
+      const enCours  = ticketsClient.filter(t => t.statut === "in_progress").length;
+      const attente  = ticketsClient.filter(t => t.statut === "ready_for_support").length;
+      const escalade = ticketsClient.filter(t => t.statut === "escalated").length;
+      const pct      = total > 0 ? Math.round((resolus / total) * 100) : 0;
+      const feedbacks = ticketsClient.filter(t => t.feedback?.note > 0);
+      const avgNote  = feedbacks.length > 0
+        ? (feedbacks.reduce((s, t) => s + t.feedback.note, 0) / feedbacks.length).toFixed(1)
+        : null;
+      return { ...c, ticketsClient, total, resolus, enCours, attente, escalade, pct, avgNote };
+    });
+
+  const pageTitle = {
+    overview: "Vue d'ensemble", tickets: "Tous les tickets",
+    agents: "Agents support", clients: "Clients",
+    suivi: "Suivi clients", "creer-client": "Créer un client"
+  };
 
   return (
     <div className="tl-layout">
 
-      {/* ---- SIDEBAR ---- */}
       <aside className="sidebar">
         <div className="sidebar-brand">
-          <div className="sidebar-brand-icon">
-            <Ico d={D.brand} size={14} />
-          </div>
+          <div className="sidebar-brand-icon"><Ico d={D.brand} size={14} /></div>
           <span className="sidebar-brand-name">TicketFlow</span>
         </div>
-
         <nav className="sidebar-nav">
           {NAV_ITEMS.map(n => (
-            <button
-              key={n.id}
-              className={`nav-item ${tab === n.id ? "active" : ""}`}
-              onClick={() => { setTab(n.id); setSel(null); }}
-            >
-              <Ico d={n.icon} size={14} />
-              {n.label}
+            <button key={n.id} className={`nav-item ${tab === n.id ? "active" : ""}`}
+              onClick={() => { setTab(n.id); setSel(null); setSelectedClient(null); }}>
+              <Ico d={n.icon} size={14} />{n.label}
             </button>
           ))}
         </nav>
-
         <div className="sidebar-footer">
           <div className="sidebar-user">
             <div className="user-avatar">{user?.prenom?.[0]}{user?.nom?.[0]}</div>
@@ -255,17 +285,13 @@ export default function TeamLeadDashboard() {
               <span className="user-name">{user?.prenom} {user?.nom}</span>
               <span className="user-role">Chef d'équipe</span>
             </div>
-            <button className="btn-logout" onClick={logout} title="Déconnexion">
-              <Ico d={D.logout} size={13} />
-            </button>
+            <button className="btn-logout" onClick={logout} title="Déconnexion"><Ico d={D.logout} size={13} /></button>
           </div>
         </div>
       </aside>
-    
 
       <main className="tl-main">
 
-        {/* ---- MODALS ---- */}
         {deleteConfirm && (
           <div className="modal-overlay">
             <div className="modal-box">
@@ -319,20 +345,17 @@ export default function TeamLeadDashboard() {
           </div>
         )}
 
-        {/* ---- TOPBAR ---- */}
         <div className="tl-topbar">
           <div>
             <h1 className="tl-page-title">{pageTitle[tab] || "Chef d'équipe"}</h1>
-            <p className="tl-page-subtitle">
-              {stats ? `${stats.total} tickets · mis à jour à ${currentTime}` : "Chargement..."}
-            </p>
+            <p className="tl-page-subtitle">{stats ? `${stats.total} tickets · mis à jour à ${currentTime}` : "Chargement..."}</p>
           </div>
           <div className="notif-wrapper">
             <button className="tl-notif-btn" onClick={toggleNotifs}>
-              <Ico d={D.bell} size={15} />
-  Notifications
-  {notifCount > 0 && <span className="notif-badge">{notifCount}</span>}
-</button>
+              <svg width={13} height={13} viewBox="0 0 16 16" style={{ fill: "#57606a" }}><path d={D.bell} /></svg>
+              Notifications
+              {notifCount > 0 && <span className="notif-badge">{notifCount}</span>}
+            </button>
             {showNotifs && (
               <div className="notif-dropdown">
                 <p className="notif-header">Notifications</p>
@@ -370,7 +393,6 @@ export default function TeamLeadDashboard() {
                   </div>
                 ))}
               </div>
-
               {stats.nonAssignes > 0 && (
                 <div className="tl-card">
                   <div className="tl-card-header">
@@ -414,7 +436,6 @@ export default function TeamLeadDashboard() {
                   <option value="non_assignes">Non assignés</option>
                 </select>
               </div>
-
               {loading ? <div className="loading">Chargement...</div> : (
                 filterStatut === "tous" ? (
                   <div className="tl-kanban-wrapper">
@@ -431,8 +452,7 @@ export default function TeamLeadDashboard() {
                               {colTickets.length === 0 ? (
                                 <div className="tl-kanban-empty">Aucun ticket</div>
                               ) : colTickets.map(t => (
-                                <div key={t._id} className="tl-kanban-card"
-                                  onClick={() => { setSel(t); fetchTicketDetail(t._id); }}>
+                                <div key={t._id} className="tl-kanban-card" onClick={() => { setSel(t); fetchTicketDetail(t._id); }}>
                                   <div className="tl-kanban-card-top">
                                     <span className="tl-ticket-id" style={{ fontSize: 10 }}>{ticketRef(t._id)}</span>
                                     <PrioBadge p={t.priorite} />
@@ -565,63 +585,182 @@ export default function TeamLeadDashboard() {
                 <span className="tl-card-title">Clients</span>
                 <span style={{ fontSize: 12, color: "#9ca3af" }}>{clientsFiltres.length} client{clientsFiltres.length !== 1 ? "s" : ""}</span>
               </div>
-              <input
-                className="tl-clients-search"
-                placeholder="Rechercher par nom ou email..."
-                value={searchClient}
-                onChange={e => setSC(e.target.value)}
-              />
+              <input className="tl-clients-search" placeholder="Rechercher par nom ou email..." value={searchClient} onChange={e => setSC(e.target.value)} />
               <table className="tl-clients-table">
                 <thead>
-                  <tr>
-                    <th>Client</th>
-                    <th>Email</th>
-                    <th>Téléphone</th>
-                    <th>Statut</th>
-                    <th>Créé le</th>
-                    <th>Actions</th>
-                  </tr>
+                  <tr><th>Client</th><th>Email</th><th>Téléphone</th><th>Statut</th><th>Créé le</th><th>Actions</th></tr>
                 </thead>
                 <tbody>
                   {clientsFiltres.length === 0 ? (
                     <tr><td colSpan={6} style={{ textAlign: "center", color: "#9ca3af", padding: 24, fontSize: 13 }}>Aucun client trouvé</td></tr>
                   ) : clientsFiltres.map(c => (
                     <tr key={c._id}>
-                      <td>
-                        <div className="tl-client-cell">
-                          <div className="tl-client-avatar">{initials(c.prenom, c.nom)}</div>
-                          <div>
-                            <div className="tl-client-name">{c.prenom} {c.nom}</div>
-                          </div>
-                        </div>
-                      </td>
+                      <td><div className="tl-client-cell"><div className="tl-client-avatar">{initials(c.prenom, c.nom)}</div><div><div className="tl-client-name">{c.prenom} {c.nom}</div></div></div></td>
                       <td><span className="tl-client-email">{c.email}</span></td>
                       <td><span className="tl-client-phone">{c.telephone || "—"}</span></td>
-                      <td>
-                        <span className={c.isActive ? "tl-status-active" : "tl-status-inactive"}>
-                          {c.isActive ? "Actif" : "Inactif"}
-                        </span>
-                      </td>
+                      <td><span className={c.isActive ? "tl-status-active" : "tl-status-inactive"}>{c.isActive ? "Actif" : "Inactif"}</span></td>
                       <td><span className="tl-client-date">{fmtDate(c.createdAt)}</span></td>
                       <td>
                         <div className="tl-action-btns">
-                          <button className="tl-btn-edit"
-                            onClick={() => { setEC(c); setEF({ nom: c.nom, prenom: c.prenom, email: c.email, telephone: c.telephone }); setEM(""); setEE(""); }}>
-                            Modifier
-                          </button>
-                          <button className={c.isActive ? "tl-btn-toggle-off" : "tl-btn-toggle-on"}
-                            onClick={() => toggleClient(c._id)}>
-                            {c.isActive ? "Désactiver" : "Activer"}
-                          </button>
-                          <button className="tl-btn-delete" onClick={() => setDC(c)}>
-                            Supprimer
-                          </button>
+                          <button className="tl-btn-edit" onClick={() => { setEC(c); setEF({ nom: c.nom, prenom: c.prenom, email: c.email, telephone: c.telephone }); setEM(""); setEE(""); }}>Modifier</button>
+                          <button className={c.isActive ? "tl-btn-toggle-off" : "tl-btn-toggle-on"} onClick={() => toggleClient(c._id)}>{c.isActive ? "Désactiver" : "Activer"}</button>
+                          <button className="tl-btn-delete" onClick={() => setDC(c)}>Supprimer</button>
                         </div>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {/* ---- SUIVI CLIENTS ---- */}
+          {tab === "suivi" && !selectedClient && (
+            <div className="tl-card">
+              <div className="tl-card-header">
+                <span className="tl-card-title">Suivi des clients</span>
+                <span style={{ fontSize: 12, color: "#9ca3af" }}>{clientsAvecStats.length} client{clientsAvecStats.length !== 1 ? "s" : ""}</span>
+              </div>
+              <input className="tl-clients-search" placeholder="Rechercher un client..." value={searchSuivi} onChange={e => setSearchSuivi(e.target.value)} />
+              {clientsAvecStats.length === 0 ? (
+                <p className="no-comment">Aucun client trouvé.</p>
+              ) : (
+                <div className="suivi-clients-list">
+                  {clientsAvecStats.map(c => (
+                    <div key={c._id} className="suivi-client-card" onClick={() => setSelectedClient(c)}>
+                      <div className="suivi-client-header">
+                        <div className="suivi-client-left">
+                          <div className="tl-client-avatar">{initials(c.prenom, c.nom)}</div>
+                          <div>
+                            <div className="suivi-client-name">{c.prenom} {c.nom}</div>
+                            <div className="suivi-client-email">{c.email}</div>
+                          </div>
+                        </div>
+                        <div className="suivi-client-right">
+                          {c.avgNote && <span className="suivi-note">⭐ {c.avgNote}/5</span>}
+                          <span className="suivi-total">{c.total} ticket{c.total !== 1 ? "s" : ""}</span>
+                          <span className="suivi-pct" style={{ color: progressColor(c.pct) }}>{c.pct}%</span>
+                        </div>
+                      </div>
+                      <div className="suivi-progress-bar-bg">
+                        <div className="suivi-progress-bar-fill" style={{ width: `${c.pct}%`, background: progressColor(c.pct) }} />
+                      </div>
+                      <div className="suivi-mini-stats">
+                        <span style={{ color: "#16a34a" }}>✅ {c.resolus} résolus</span>
+                        <span style={{ color: "#2563eb" }}>🔵 {c.enCours} en cours</span>
+                        <span style={{ color: "#d97706" }}>⏳ {c.attente} en attente</span>
+                        {c.escalade > 0 && <span style={{ color: "#dc2626" }}>⚠️ {c.escalade} escaladés</span>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ---- SUIVI DETAIL CLIENT ---- */}
+          {tab === "suivi" && selectedClient && (
+            <div className="tl-card">
+              <button className="btn-back" onClick={() => setSelectedClient(null)}>← Retour au suivi</button>
+              <div className="suivi-detail-header">
+                <div className="tl-client-avatar" style={{ width: 48, height: 48, fontSize: 16 }}>
+                  {initials(selectedClient.prenom, selectedClient.nom)}
+                </div>
+                <div>
+                  <h2 style={{ fontSize: 18, fontWeight: 600, color: "#111827", margin: 0 }}>{selectedClient.prenom} {selectedClient.nom}</h2>
+                  <p style={{ fontSize: 12, color: "#9ca3af", margin: "2px 0 0" }}>{selectedClient.email}</p>
+                </div>
+                <div className="suivi-detail-stats">
+                  <div className="suivi-detail-stat"><span style={{ fontSize: 22, fontWeight: 700, color: progressColor(selectedClient.pct) }}>{selectedClient.pct}%</span><span style={{ fontSize: 11, color: "#9ca3af" }}>Résolution</span></div>
+                  <div className="suivi-detail-stat"><span style={{ fontSize: 22, fontWeight: 700, color: "#111827" }}>{selectedClient.total}</span><span style={{ fontSize: 11, color: "#9ca3af" }}>Total</span></div>
+                  <div className="suivi-detail-stat"><span style={{ fontSize: 22, fontWeight: 700, color: "#16a34a" }}>{selectedClient.resolus}</span><span style={{ fontSize: 11, color: "#9ca3af" }}>Résolus</span></div>
+                  {selectedClient.avgNote && <div className="suivi-detail-stat"><span style={{ fontSize: 22, fontWeight: 700, color: "#d97706" }}>⭐ {selectedClient.avgNote}</span><span style={{ fontSize: 11, color: "#9ca3af" }}>Satisfaction</span></div>}
+                </div>
+              </div>
+
+              <div style={{ marginBottom: 24 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#6b7280", marginBottom: 4 }}>
+                  <span>Avancement global</span>
+                  <span style={{ fontWeight: 600, color: progressColor(selectedClient.pct) }}>{selectedClient.pct}%</span>
+                </div>
+                <div className="suivi-progress-bar-bg" style={{ height: 10 }}>
+                  <div className="suivi-progress-bar-fill" style={{ width: `${selectedClient.pct}%`, background: progressColor(selectedClient.pct) }} />
+                </div>
+              </div>
+
+              <p style={{ fontSize: 13, fontWeight: 600, color: "#111827", marginBottom: 12 }}>
+                Tickets ({selectedClient.ticketsClient.length})
+              </p>
+
+              {selectedClient.ticketsClient.length === 0 ? (
+                <p className="no-comment">Aucun ticket pour ce client.</p>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  {selectedClient.ticketsClient.map(t => {
+                    const pct = ticketProgress(t.statut);
+                    const color = progressColor(pct);
+                    return (
+                      <div key={t._id} className="suivi-ticket-item">
+                        <div className="suivi-ticket-top">
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <span className="tl-ticket-id">{ticketRef(t._id)}</span>
+                            <span style={{ fontSize: 13, fontWeight: 500, color: "#111827" }}>{t.titre}</span>
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <PrioBadge p={t.priorite} />
+                            <StatutBadge s={t.statut} />
+                            <span style={{ fontSize: 12, fontWeight: 700, color }}>{pct}%</span>
+                          </div>
+                        </div>
+
+                        <div className="suivi-progress-bar-bg" style={{ marginTop: 8 }}>
+                          <div className="suivi-progress-bar-fill" style={{ width: `${pct}%`, background: color }} />
+                        </div>
+
+                        <div className="suivi-ticket-steps">
+                          {[
+                            { label: "À faire",  statuts: ["ready_for_support"] },
+                            { label: "En cours", statuts: ["in_progress"] },
+                            { label: "Solution", statuts: ["ready_for_customer"] },
+                            { label: "Résolu",   statuts: ["solved","closed"] },
+                          ].map((step, i) => {
+                            const done = step.statuts.includes(t.statut) ||
+                              (i === 0 && ["in_progress","ready_for_customer","solved","closed"].includes(t.statut)) ||
+                              (i === 1 && ["ready_for_customer","solved","closed"].includes(t.statut)) ||
+                              (i === 2 && ["solved","closed"].includes(t.statut));
+                            const active = step.statuts.includes(t.statut);
+                            return (
+                              <div key={i} className="suivi-step">
+                                <div className="suivi-step-dot" style={{
+                                  background: done ? color : "#e5e7eb",
+                                  border: active ? `2px solid ${color}` : "none",
+                                  transform: active ? "scale(1.2)" : "scale(1)",
+                                }} />
+                                <span className="suivi-step-label" style={{ color: done ? color : "#9ca3af", fontWeight: active ? 600 : 400 }}>{step.label}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* ← OPTION 2 : feedback en ligne séparée */}
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 10, paddingTop: 10, borderTop: "1px solid #f3f4f6", flexWrap: "wrap", gap: 6 }}>
+                          <div style={{ fontSize: 11, color: "#9ca3af" }}>
+                            Créé le {fmtDate(t.createdAt)}
+                            {t.assignee && <> · Agent : <strong>{t.assignee.prenom} {t.assignee.nom}</strong></>}
+                          </div>
+                          {t.feedback?.note > 0 && (
+                            <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#fef9c3", border: "1px solid #fde68a", borderRadius: 8, padding: "4px 10px" }}>
+                              <span style={{ fontSize: 12 }}>⭐</span>
+                              <span style={{ fontSize: 12, fontWeight: 600, color: "#854d0e" }}>{t.feedback.note}/5</span>
+                              <span style={{ fontSize: 11, color: "#a16207" }}>Satisfaction client</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 

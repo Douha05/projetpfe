@@ -43,62 +43,47 @@ const PRIO_MAP = {
 
 const TYPE_ICON = { bug: "🐛", feature: "✨", consultancy: "💬" };
 
-// ---- SVG ICONS (14x14 comme chef d'équipe) ----
 const IconApp = () => (
   <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
     <path d="M1.5 3.5A1.5 1.5 0 0 1 3 2h9.982a1.5 1.5 0 0 1 1.498 1.5v2.5a.5.5 0 0 1-.5.5 1 1 0 0 0 0 2 .5.5 0 0 1 .5.5v2.5A1.5 1.5 0 0 1 12.982 13H3A1.5 1.5 0 0 1 1.5 11.5V8a.5.5 0 0 1 .5-.5 1 1 0 1 0 0-2 .5.5 0 0 1-.5-.5V3.5z"/>
   </svg>
 );
-
 const IconUserPlus = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-    <circle cx="9" cy="7" r="4"/>
-    <line x1="19" y1="8" x2="19" y2="14"/>
-    <line x1="22" y1="11" x2="16" y2="11"/>
+    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+    <line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>
   </svg>
 );
-
 const IconClientAdd = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-    <circle cx="12" cy="7" r="4"/>
-    <line x1="19" y1="3" x2="19" y2="9"/>
-    <line x1="22" y1="6" x2="16" y2="6"/>
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+    <line x1="19" y1="3" x2="19" y2="9"/><line x1="22" y1="6" x2="16" y2="6"/>
   </svg>
 );
-
 const IconUsers = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-    <circle cx="9" cy="7" r="4"/>
-    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
   </svg>
 );
-
 const IconWorkflow = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="3" y="3" width="5" height="5" rx="1"/>
-    <rect x="16" y="3" width="5" height="5" rx="1"/>
+    <rect x="3" y="3" width="5" height="5" rx="1"/><rect x="16" y="3" width="5" height="5" rx="1"/>
     <rect x="9.5" y="16" width="5" height="5" rx="1"/>
     <path d="M5.5 8v3a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V8"/>
     <line x1="12" y1="13" x2="12" y2="16"/>
   </svg>
 );
-
 const IconBell = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
     <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
   </svg>
 );
-
 const IconLogout = () => (
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-    <polyline points="16 17 21 12 16 7"/>
-    <line x1="21" y1="12" x2="9" y2="12"/>
+    <polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
   </svg>
 );
 
@@ -125,6 +110,7 @@ const AdminDashboard = () => {
 
   const [activeTab, setActiveTab] = useState("creer-personnel");
   const [users, setUsers] = useState([]);
+  const [agents, setAgents] = useState([]);
   const [searchUsers, setSearchUsers] = useState("");
   const [loading, setLoading] = useState(false);
   const [serverMsg, setServerMsg] = useState("");
@@ -145,6 +131,14 @@ const AdminDashboard = () => {
   const [editingTransition, setEditingTransition] = useState(null);
   const [transitionForm, setTransitionForm] = useState({});
 
+  // ---- EDIT TICKET ----
+  const [editTicket, setEditTicket] = useState(null);
+  const [editTicketForm, setEditTicketForm] = useState({
+    priorite: "", assigneeId: "", action: "aucun", bloqueRaison: "",
+  });
+  const [editTicketMsg, setEditTicketMsg] = useState("");
+  const [editTicketErr, setEditTicketErr] = useState("");
+
   const [formPersonnel, setFormPersonnel] = useState({
     nom: "", prenom: "", email: "", telephone: "", departement: "", role: "support",
   });
@@ -155,10 +149,11 @@ const AdminDashboard = () => {
   useEffect(() => {
     if (!token || !user || user.role !== "admin") { navigate("/login"); return; }
     if (activeTab === "users") fetchUsers();
-    if (activeTab === "workflow") { fetchWorkflow(); fetchWfTickets(); }
+    if (activeTab === "workflow") { fetchWorkflow(); fetchWfTickets(); fetchAgents(); }
     fetchDemandes();
     const interval = setInterval(() => {
       if (activeTab === "users") fetchUsers();
+      if (activeTab === "workflow") fetchWfTickets();
       fetchDemandes();
     }, 10000);
     return () => clearInterval(interval);
@@ -169,6 +164,13 @@ const AdminDashboard = () => {
     fetch(`${API}/admin/users`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json()).then(d => { if (d.status === "ok") setUsers(d.users); })
       .finally(() => setLoading(false));
+  };
+
+  const fetchAgents = () => {
+    fetch(`${API}/admin/users`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json()).then(d => {
+        if (d.status === "ok") setAgents(d.users.filter(u => u.role === "support" && u.isActive));
+      });
   };
 
   const fetchDemandes = () => {
@@ -236,6 +238,77 @@ const AdminDashboard = () => {
       const arr = prev[field] || [];
       return { ...prev, [field]: arr.includes(role) ? arr.filter(r => r !== role) : [...arr, role] };
     });
+  };
+
+  // ---- OPEN EDIT TICKET ----
+  const openEditTicket = (tk) => {
+    setEditTicket(tk);
+    setEditTicketForm({
+      priorite: tk.priorite,
+      assigneeId: "",
+      action: "aucun",
+      bloqueRaison: "",
+    });
+    setEditTicketMsg(""); setEditTicketErr("");
+  };
+
+  // ---- SAVE TICKET ----
+  const handleSaveTicket = async () => {
+    setEditTicketMsg(""); setEditTicketErr("");
+    try {
+      // 1. Changer priorité si modifiée
+      if (editTicketForm.priorite !== editTicket.priorite) {
+        const r = await fetch(`${API}/tickets/${editTicket._id}/priorite`, {
+          method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ priorite: editTicketForm.priorite }),
+        });
+        const d = await r.json();
+        if (d.status !== "ok") { setEditTicketErr(d.msg); return; }
+      }
+
+      // 2. Réassigner si agent sélectionné
+      if (editTicketForm.assigneeId) {
+        const r = await fetch(`${API}/tickets/${editTicket._id}/assigner`, {
+          method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ assigneeId: editTicketForm.assigneeId }),
+        });
+        const d = await r.json();
+        if (d.status !== "ok") { setEditTicketErr(d.msg); return; }
+      }
+
+      // 3. Action admin
+      if (editTicketForm.action === "bloquer") {
+        const r = await fetch(`${API}/tickets/${editTicket._id}/bloquer`, {
+          method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ bloquer: true, raison: editTicketForm.bloqueRaison }),
+        });
+        const d = await r.json();
+        if (d.status !== "ok") { setEditTicketErr(d.msg); return; }
+      } else if (editTicketForm.action === "debloquer") {
+        const r = await fetch(`${API}/tickets/${editTicket._id}/bloquer`, {
+          method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ bloquer: false }),
+        });
+        const d = await r.json();
+        if (d.status !== "ok") { setEditTicketErr(d.msg); return; }
+      } else if (editTicketForm.action === "forcer-resolu") {
+        const r = await fetch(`${API}/tickets/${editTicket._id}/forcer-resolu`, {
+          method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        });
+        const d = await r.json();
+        if (d.status !== "ok") { setEditTicketErr(d.msg); return; }
+      } else if (editTicketForm.action === "reuvrir") {
+        const r = await fetch(`${API}/tickets/${editTicket._id}/reuvrir`, {
+          method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        });
+        const d = await r.json();
+        if (d.status !== "ok") { setEditTicketErr(d.msg); return; }
+      }
+
+      setEditTicketMsg("✅ Ticket mis à jour !");
+      fetchWfTickets();
+      setTimeout(() => { setEditTicket(null); setEditTicketMsg(""); }, 1500);
+    } catch { setEditTicketErr("Erreur de connexion"); }
   };
 
   const handleCreatePersonnel = async (e) => {
@@ -351,15 +424,22 @@ const AdminDashboard = () => {
 
   const usersFiltres = users.filter(u => {
     const q = searchUsers.toLowerCase();
-    return (
-      u.prenom?.toLowerCase().includes(q) ||
-      u.nom?.toLowerCase().includes(q) ||
-      u.email?.toLowerCase().includes(q) ||
-      u.departement?.toLowerCase().includes(q)
-    );
+    return u.prenom?.toLowerCase().includes(q) || u.nom?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q) || u.departement?.toLowerCase().includes(q);
   });
 
   const pageInfo = PAGE_TITLES[activeTab] || { title: "Administration", sub: "" };
+
+  // Actions disponibles selon le statut du ticket
+  const getActionsDisponibles = (tk) => {
+    const actions = [{ value: "aucun", label: "— Aucune action admin —" }];
+    if (!tk.bloque) actions.push({ value: "bloquer", label: "🔒 Bloquer ce ticket" });
+    if (tk.bloque) actions.push({ value: "debloquer", label: "🔓 Débloquer ce ticket" });
+    if (!["solved", "closed", "cancelled"].includes(tk.statut))
+      actions.push({ value: "forcer-resolu", label: "✅ Forcer la résolution" });
+    if (["solved", "closed", "cancelled"].includes(tk.statut))
+      actions.push({ value: "reuvrir", label: "🔄 Réouvrir ce ticket" });
+    return actions;
+  };
 
   return (
     <div className="ad-layout">
@@ -367,39 +447,27 @@ const AdminDashboard = () => {
       {/* ---- SIDEBAR ---- */}
       <aside className="ad-sidebar">
         <div className="ad-brand">
-          <div className="ad-brand-icon">
-            <IconApp />
-          </div>
+          <div className="ad-brand-icon"><IconApp /></div>
           <span className="ad-brand-name">DevApp</span>
         </div>
-
         <div className="ad-nav-label">Gestion</div>
-
         <nav className="ad-nav">
           {NAV_ITEMS.map(n => (
-            <button
-              key={n.id}
-              className={`ad-nav-item ${activeTab === n.id ? "ad-nav-active" : ""}`}
-              onClick={() => { setActiveTab(n.id); setServerMsg(""); setServerError(""); }}
-            >
+            <button key={n.id} className={`ad-nav-item ${activeTab === n.id ? "ad-nav-active" : ""}`}
+              onClick={() => { setActiveTab(n.id); setServerMsg(""); setServerError(""); }}>
               <span className="ad-nav-icon"><n.Icon /></span>
               <span style={{ flex: 1 }}>{n.label}</span>
-              {n.badge && demandesCount > 0 && (
-                <span className="ad-nav-badge">{demandesCount}</span>
-              )}
+              {n.badge && demandesCount > 0 && <span className="ad-nav-badge">{demandesCount}</span>}
             </button>
           ))}
         </nav>
-
         <div className="ad-sidebar-user">
           <div className="ad-user-avatar">{user?.prenom?.[0]}{user?.nom?.[0]}</div>
           <div className="ad-user-info">
             <span className="ad-user-name">{user?.prenom} {user?.nom}</span>
             <span className="ad-user-role">Administrateur</span>
           </div>
-          <button className="ad-logout-btn" onClick={handleLogout} title="Déconnexion">
-            <IconLogout />
-          </button>
+          <button className="ad-logout-btn" onClick={handleLogout} title="Déconnexion"><IconLogout /></button>
         </div>
       </aside>
 
@@ -518,6 +586,109 @@ const AdminDashboard = () => {
           </div>
         )}
 
+        {/* ---- MODAL EDIT TICKET ---- */}
+        {editTicket && (
+          <div className="modal-overlay">
+            <div className="modal-box modal-edit">
+              <h3>Modifier le ticket</h3>
+              <p className="modal-ticket-title">{editTicket.titre}</p>
+              <p style={{ fontSize: 12, color: "#6b7280", marginBottom: 16 }}>
+                Client : <strong>{editTicket.reporter?.prenom} {editTicket.reporter?.nom}</strong>
+                {editTicket.assignee && <> · Agent : <strong>{editTicket.assignee.prenom} {editTicket.assignee.nom}</strong></>}
+                {editTicket.bloque && <span style={{ marginLeft: 8, background: "#fef2f2", color: "#b91c1c", fontSize: 11, padding: "2px 8px", borderRadius: 6 }}>🔒 Bloqué</span>}
+              </p>
+
+              {editTicketErr && <div className="alert alert-error">{editTicketErr}</div>}
+              {editTicketMsg && <div className="alert alert-success">{editTicketMsg}</div>}
+
+              {/* Priorité */}
+              <div className="form-group">
+                <label>Priorité</label>
+                <select className="form-input" value={editTicketForm.priorite} onChange={e => setEditTicketForm({ ...editTicketForm, priorite: e.target.value })}>
+                  <option value="low">Faible</option>
+                  <option value="medium">Moyen</option>
+                  <option value="high">Haute</option>
+                  <option value="critical">Critique</option>
+                </select>
+              </div>
+
+              {/* Réassigner */}
+              <div className="form-group">
+                <label>Réassigner à</label>
+                <select className="form-input" value={editTicketForm.assigneeId} onChange={e => setEditTicketForm({ ...editTicketForm, assigneeId: e.target.value })}>
+                  <option value="">— Garder l'agent actuel —</option>
+                  {agents.map(a => <option key={a._id} value={a._id}>{a.prenom} {a.nom}</option>)}
+                </select>
+              </div>
+
+              {/* Séparateur */}
+              <div style={{ borderTop: "1px solid #f3f4f6", margin: "16px 0", paddingTop: 16 }}>
+                <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 10 }}>Actions administrateur</p>
+
+                {/* Action admin */}
+                <div className="form-group">
+                  <label>Action</label>
+                  <select className="form-input" value={editTicketForm.action}
+                    onChange={e => setEditTicketForm({ ...editTicketForm, action: e.target.value, bloqueRaison: "" })}
+                    style={{
+                      borderColor: editTicketForm.action === "bloquer" ? "#fca5a5"
+                        : editTicketForm.action === "forcer-resolu" ? "#bbf7d0"
+                        : editTicketForm.action === "reuvrir" ? "#bfdbfe"
+                        : editTicketForm.action === "debloquer" ? "#6ee7b7"
+                        : undefined,
+                    }}>
+                    {getActionsDisponibles(editTicket).map(a => (
+                      <option key={a.value} value={a.value}>{a.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Raison si bloquer */}
+                {editTicketForm.action === "bloquer" && (
+                  <div className="form-group">
+                    <label>Raison du blocage</label>
+                    <input type="text" className="form-input" placeholder="Ex: Litige en cours, investigation nécessaire..."
+                      value={editTicketForm.bloqueRaison}
+                      onChange={e => setEditTicketForm({ ...editTicketForm, bloqueRaison: e.target.value })}
+                      style={{ borderColor: "#fca5a5" }} />
+                  </div>
+                )}
+
+                {/* Description des actions */}
+                {editTicketForm.action === "bloquer" && (
+                  <div className="info-box" style={{ background: "#fef2f2", border: "1px solid #fecaca" }}>
+                    <span>🔒</span>
+                    <p style={{ color: "#b91c1c" }}>L'agent ne pourra plus modifier ce ticket. Le client et l'agent seront notifiés.</p>
+                  </div>
+                )}
+                {editTicketForm.action === "debloquer" && (
+                  <div className="info-box" style={{ background: "#f0fdf4", border: "1px solid #bbf7d0" }}>
+                    <span>🔓</span>
+                    <p style={{ color: "#15803d" }}>Le ticket reprend son traitement normal. L'agent et le client seront notifiés.</p>
+                  </div>
+                )}
+                {editTicketForm.action === "forcer-resolu" && (
+                  <div className="info-box" style={{ background: "#f0fdf4", border: "1px solid #bbf7d0" }}>
+                    <span>✅</span>
+                    <p style={{ color: "#15803d" }}>Le ticket sera marqué comme résolu sans attendre la confirmation du client. Utilisez si le client est injoignable.</p>
+                  </div>
+                )}
+                {editTicketForm.action === "reuvrir" && (
+                  <div className="info-box" style={{ background: "#eff6ff", border: "1px solid #bfdbfe" }}>
+                    <span>🔄</span>
+                    <p style={{ color: "#1d4ed8" }}>Le ticket retourne en "En attente". L'agent et le client seront notifiés.</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="modal-actions">
+                <button className="btn-cancel" onClick={() => setEditTicket(null)}>Annuler</button>
+                <button className="btn-save" onClick={handleSaveTicket}>Enregistrer</button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ---- TOPBAR ---- */}
         <div className="ad-topbar">
           <div>
@@ -610,7 +781,7 @@ const AdminDashboard = () => {
                   <label>Téléphone <span className="req">*</span></label>
                   <input type="text" placeholder="+216 XX XXX XXX" className="form-input" value={formClient.telephone} onChange={e => setFormClient({ ...formClient, telephone: e.target.value })} />
                 </div>
-                <div className="info-box"><span>🔐</span><p>Un mot de passe temporaire sera généré et envoyé au client. Il devra le changer à sa première connexion.</p></div>
+                <div className="info-box"><span>🔐</span><p>Un mot de passe temporaire sera généré et envoyé au client.</p></div>
                 <button type="submit" className="btn-primary">Créer le compte client</button>
               </form>
             </div>
@@ -626,19 +797,13 @@ const AdminDashboard = () => {
                 </div>
                 <span style={{ fontSize: 12, color: "#9ca3af" }}>{usersFiltres.length} utilisateur{usersFiltres.length !== 1 ? "s" : ""}</span>
               </div>
-              <input
-                className="ad-search-input"
-                placeholder="Rechercher par nom, email ou département..."
-                value={searchUsers}
-                onChange={e => setSearchUsers(e.target.value)}
-              />
+              <input className="ad-search-input" placeholder="Rechercher par nom, email ou département..."
+                value={searchUsers} onChange={e => setSearchUsers(e.target.value)} />
               {loading ? <div className="loading">Chargement...</div> : (
                 <div className="users-table-wrapper">
                   <table className="users-table">
                     <thead>
-                      <tr>
-                        <th>Utilisateur</th><th>Email</th><th>Rôle</th><th>Statut</th><th>Actions</th>
-                      </tr>
+                      <tr><th>Utilisateur</th><th>Email</th><th>Rôle</th><th>Statut</th><th>Actions</th></tr>
                     </thead>
                     <tbody>
                       {usersFiltres.length === 0 ? (
@@ -734,20 +899,26 @@ const AdminDashboard = () => {
                         {tix.length > 0 && (
                           <div className="wf-tickets-list">
                             {tix.map(tk => (
-                              <div key={tk._id} className="wf-ticket-row">
+                              <div key={tk._id} className="wf-ticket-row" style={{ background: tk.bloque ? "#fef2f2" : undefined }}>
                                 <div className="wf-ticket-left">
                                   <span style={{ fontSize: 14 }}>{TYPE_ICON[tk.type] || "💬"}</span>
                                   <div>
-                                    <p className="wf-ticket-titre">{tk.titre}</p>
+                                    <p className="wf-ticket-titre">
+                                      {tk.bloque && <span style={{ marginRight: 6 }}>🔒</span>}
+                                      {tk.titre}
+                                    </p>
                                     <p className="wf-ticket-meta">
                                       Client : <strong>{tk.reporter?.prenom} {tk.reporter?.nom}</strong>
                                       {" · "}Agent : <strong>{tk.assignee ? `${tk.assignee.prenom} ${tk.assignee.nom}` : "Non assigné"}</strong>
                                     </p>
                                   </div>
                                 </div>
-                                <span className={`prio-badge-wf prio-${tk.priorite}`}>
-                                  {PRIO_MAP[tk.priorite]?.label || tk.priorite}
-                                </span>
+                                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                  <span className={`prio-badge-wf prio-${tk.priorite}`}>
+                                    {PRIO_MAP[tk.priorite]?.label || tk.priorite}
+                                  </span>
+                                  <button className="btn-edit" onClick={() => openEditTicket(tk)}>Modifier</button>
+                                </div>
                               </div>
                             ))}
                           </div>
