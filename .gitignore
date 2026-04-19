@@ -2,3 +2,4 @@
 "backend/node_modules/" 
 "my-frontend-project/node_modules/" 
 "backend/uploads/" 
+backend/config/firebase-admin.json 
