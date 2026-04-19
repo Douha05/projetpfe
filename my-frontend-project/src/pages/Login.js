@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import "./Login.css";
+import { requestNotificationPermission } from "../firebase";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -36,6 +37,25 @@ const Login = () => {
     return newErrors;
   };
 
+  // ✅ Initialiser les notifications push après connexion
+  const initPush = async (token) => {
+    try {
+      const fcmToken = await requestNotificationPermission();
+      if (!fcmToken) return;
+      await fetch("http://localhost:3001/api/push/token", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ fcmToken }),
+      });
+      console.log("✅ FCM Token sauvegardé");
+    } catch (err) {
+      console.error("Erreur FCM:", err);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setServerError("");
@@ -68,9 +88,12 @@ const Login = () => {
           sessionStorage.setItem("user", JSON.stringify(data.user));
         }
 
+        // ✅ Initialiser push après connexion réussie
+        await initPush(data.token);
+
         // Première connexion → changer mot de passe
         if (data.user.mustChangePassword) {
-          navigate("/change-password"); // ✅ corrigé
+          navigate("/change-password");
           return;
         }
 
@@ -87,7 +110,6 @@ const Login = () => {
 
   return (
     <div className="login-page">
-
       <div className="login-brand">
         <div className="brand-logo">
           <svg viewBox="0 0 24 24" fill="white" width="28" height="28">
@@ -99,7 +121,6 @@ const Login = () => {
       </div>
 
       <div className="login-card">
-
         <div className="login-header">
           <h2>Connexion</h2>
           <p>Entrez vos identifiants pour accéder à votre compte</p>
@@ -109,8 +130,6 @@ const Login = () => {
         {serverError && <div className="alert alert-error">{serverError}</div>}
 
         <form onSubmit={handleSubmit} noValidate>
-
-          {/* Email */}
           <div className="form-group">
             <label>Adresse e-mail</label>
             <div className={`input-box ${errors.email ? "input-box--error" : ""}`}>
@@ -130,7 +149,6 @@ const Login = () => {
             {errors.email && <span className="error-msg">{errors.email}</span>}
           </div>
 
-          {/* Mot de passe */}
           <div className="form-group">
             <label>Mot de passe</label>
             <div className={`input-box ${errors.password ? "input-box--error" : ""}`}>
@@ -164,7 +182,6 @@ const Login = () => {
             {errors.password && <span className="error-msg">{errors.password}</span>}
           </div>
 
-          {/* Se souvenir + Mot de passe oublié */}
           <div className="login-options">
             <label className="remember-label">
               <input
@@ -183,7 +200,6 @@ const Login = () => {
           <button type="submit" className="btn-submit" disabled={loading}>
             {loading ? "Connexion..." : "Se connecter"}
           </button>
-
         </form>
 
         <div className="divider">
@@ -193,7 +209,6 @@ const Login = () => {
         <p className="contact-admin-client">
           Pour créer un compte, contactez votre administrateur.
         </p>
-
       </div>
 
       <div className="login-footer">
@@ -205,7 +220,6 @@ const Login = () => {
         </p>
         <p>© 2026 Portail Client. Tous droits réservés.</p>
       </div>
-
     </div>
   );
 };

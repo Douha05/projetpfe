@@ -4,5 +4,7 @@
   "tokenExpire": "7d",
   "port": 3001,
   "emailUser": "dou7ha.bensalem@gmail.com",
-  "emailPass": "tulfeamhwtohuqhb"
+  "emailPass": "tulfeamhwtohuqhb",
+  "openRouterKey": "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"
+
 }

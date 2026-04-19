@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import "./LoginPersonnel.css";
+import { requestNotificationPermission } from "../firebase";
 
 const LoginPersonnel = () => {
   const navigate = useNavigate();
@@ -27,6 +28,25 @@ const LoginPersonnel = () => {
     return newErrors;
   };
 
+  // ✅ Initialiser les notifications push après connexion
+  const initPush = async (token) => {
+    try {
+      const fcmToken = await requestNotificationPermission();
+      if (!fcmToken) return;
+      await fetch("http://localhost:3001/api/push/token", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ fcmToken }),
+      });
+      console.log("✅ FCM Token sauvegardé");
+    } catch (err) {
+      console.error("Erreur FCM:", err);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setServerError("");
@@ -42,7 +62,11 @@ const LoginPersonnel = () => {
       const data = await response.json();
       if (data.status === "ok") {
         const { token, user } = data;
-        if (user.role === "client") { setServerError("Accès refusé. Utilisez le portail client."); setLoading(false); return; }
+        if (user.role === "client") {
+          setServerError("Accès refusé. Utilisez le portail client.");
+          setLoading(false);
+          return;
+        }
         if (formData.rememberMe) {
           localStorage.setItem("token", token);
           localStorage.setItem("user", JSON.stringify(user));
@@ -51,7 +75,10 @@ const LoginPersonnel = () => {
           sessionStorage.setItem("user", JSON.stringify(user));
         }
 
-        // ← Si première connexion → changer mot de passe
+        // ✅ Initialiser push après connexion réussie
+        await initPush(token);
+
+        // Première connexion → changer mot de passe
         if (user.mustChangePassword) {
           navigate("/change-password");
           return;

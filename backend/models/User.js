@@ -12,8 +12,18 @@ const UserSchema = new mongoose.Schema(
       type: String,
       enum: ["client", "support", "team_lead", "admin"],
       default: "client",
+      // ── IA ──────────────────────────────────────────────────
+    specialites: {
+      type: [String],   // ex: ["réseau", "facturation", "bug"]
+      default: []
+    },
+    workloadActuel: {
+      type: Number,
+      default: 0        // nombre de tickets ouverts assignés à cet agent
+    },
     },
     isActive: { type: Boolean, default: true },
+    fcmToken: { type: String, default: null },
     mustChangePassword: { type: Boolean, default: false },
   },
   { timestamps: true }

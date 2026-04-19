@@ -17,7 +17,8 @@ const TransitionSchema = new mongoose.Schema({
     default: ["support"],
   },
   active: { type: Boolean, default: true },
-  delaiEscaladeHeures: { type: Number, default: null }, // null = pas d'escalade auto
+  delaiEscaladeHeures:  { type: Number, default: null },
+  delaiEscaladeMinutes: { type: Number, default: null },
   notifierRoles: {
     type: [String],
     enum: ["admin", "team_lead", "support", "client"],
@@ -25,10 +26,18 @@ const TransitionSchema = new mongoose.Schema({
   },
 });
 
+const SlaConfigSchema = new mongoose.Schema({
+  critical: { type: Number, default: 4  },
+  high:     { type: Number, default: 8  },
+  medium:   { type: Number, default: 24 },
+  low:      { type: Number, default: 72 },
+}, { _id: false });
+
 const WorkflowSchema = new mongoose.Schema(
   {
-    nom: { type: String, default: "Workflow principal" },
-    transitions: [TransitionSchema],
+    nom:         { type: String, default: "Workflow principal" },
+    transitions: [ TransitionSchema ],
+    slaConfig:   { type: SlaConfigSchema, default: () => ({}) },
   },
   { timestamps: true }
 );

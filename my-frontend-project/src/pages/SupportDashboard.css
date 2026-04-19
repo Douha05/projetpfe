@@ -1,10 +1,10 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
-
+ 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: #f8f9fb; color: #1a1d23; }
-
+ 
 .sp-layout { display: flex; min-height: 100vh; }
-
+ 
 /* ======= SIDEBAR ======= */
 .sp-sidebar {
   width: 220px; background: #1c2128; display: flex; flex-direction: column;
@@ -21,7 +21,7 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; back
 }
 .sidebar-brand-icon svg { width: 14px; height: 14px; fill: #fff; }
 .sidebar-brand-name { font-size: 13px; font-weight: 600; color: #e6edf3; letter-spacing: -0.01em; }
-
+ 
 .sidebar-nav { display: flex; flex-direction: column; gap: 1px; flex: 1; }
 .nav-section-label { font-size: 10px; font-weight: 600; color: #6e7681; letter-spacing: 0.06em; text-transform: uppercase; padding: 8px 10px 4px; }
 .nav-item {
@@ -35,7 +35,7 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; back
 .nav-item svg { width: 14px; height: 14px; flex-shrink: 0; }
 .nav-badge { margin-left: auto; background: #30363d; color: #8b949e; font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 10px; }
 .nav-item.active .nav-badge { background: rgba(255,255,255,0.2); color: #fff; }
-
+ 
 .sidebar-footer { margin-top: auto; }
 .sidebar-user {
   display: flex; align-items: center; gap: 8px; padding: 9px 10px;
@@ -52,11 +52,11 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; back
 .btn-logout { background: none; border: none; color: #6e7681; cursor: pointer; padding: 3px; border-radius: 4px; transition: all 0.1s; display: flex; }
 .btn-logout:hover { color: #f85149; background: rgba(248,81,73,0.1); }
 .btn-logout svg { width: 13px; height: 13px; }
-
+ 
 /* ======= MAIN ======= */
 .sp-main { margin-left: 220px; flex: 1; min-height: 100vh; background: #f8f9fb; }
-
-/* ======= TOPBAR ======= */
+ 
+/* ======= PAGE HEADER ======= */
 .sp-topbar,
 .page-header {
   display: flex;
@@ -86,7 +86,8 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; back
   margin: 0;
 }
 .page-header-right { display: flex; align-items: center; gap: 8px; }
-
+ 
+/* ======= NOTIFICATIONS ======= */
 .notif-wrapper { position: relative; }
 .notif-btn {
   display: flex; align-items: center; gap: 7px;
@@ -115,7 +116,7 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; back
 .notif-unread { background: #f0f7ff; border-left: 2px solid #2f81f7; }
 .notif-msg { font-size: 12px; color: #1a1d23; margin-bottom: 2px; line-height: 1.4; }
 .notif-date { font-size: 10px; color: #8c959f; }
-
+ 
 /* ======= STATS ======= */
 .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 20px 28px; }
 .stat-card {
@@ -128,15 +129,15 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; back
 .stat-progress { border-top-color: #2f81f7; }
 .stat-waiting  { border-top-color: #d29922; }
 .stat-solved   { border-top-color: #1a7f37; }
+.stat-active   { box-shadow: 0 0 0 2px rgba(47,129,247,0.25); border-color: #a8d0f8; }
 .stat-number { font-size: 26px; font-weight: 600; color: #1a1d23; display: block; line-height: 1; margin-bottom: 4px; letter-spacing: -0.02em; }
 .stat-label { font-size: 11px; color: #6e7681; font-weight: 500; }
-
+ 
 /* ======= KANBAN ======= */
 .sp-content { padding: 0; }
 .kanban-wrapper { overflow-x: auto; padding: 0 28px 28px; }
 .kanban-board { display: flex; gap: 12px; min-width: 900px; align-items: flex-start; }
-
-/* ---- COLONNES COLORÉES (comme image 2) ---- */
+ 
 .kanban-col {
   flex: 1; min-width: 170px;
   background: #fff;
@@ -146,67 +147,37 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; back
   max-height: calc(100vh - 280px);
   overflow: hidden;
 }
-
-/* À faire — orange/jaune */
-.col-todo {
-  border-color: #e8a020;
-  background: #fffdf7;
-}
-.col-todo .kanban-col-header {
-  background: #fff8ec;
-  border-bottom-color: #f5d08a;
-}
+ 
+/* À faire */
+.col-todo { border-color: #e8a020; background: #fffdf7; }
+.col-todo .kanban-col-header { background: #fff8ec; border-bottom-color: #f5d08a; }
 .col-todo .kanban-col-title { color: #b35e00; }
 .col-todo .kanban-col-count { background: #fde8b0; color: #8a4700; }
-
-/* En cours — bleu */
-.col-prog {
-  border-color: #2f81f7;
-  background: #f5faff;
-}
-.col-prog .kanban-col-header {
-  background: #e8f3ff;
-  border-bottom-color: #a8d0f8;
-}
+ 
+/* En cours */
+.col-prog { border-color: #2f81f7; background: #f5faff; }
+.col-prog .kanban-col-header { background: #e8f3ff; border-bottom-color: #a8d0f8; }
 .col-prog .kanban-col-title { color: #0a569e; }
 .col-prog .kanban-col-count { background: #bfdbfe; color: #0a569e; }
-
-/* À confirmer — violet */
-.col-confirm {
-  border-color: #8250df;
-  background: #fbf8ff;
-}
-.col-confirm .kanban-col-header {
-  background: #f3ecff;
-  border-bottom-color: #d0b0f8;
-}
+ 
+/* À confirmer */
+.col-confirm { border-color: #8250df; background: #fbf8ff; }
+.col-confirm .kanban-col-header { background: #f3ecff; border-bottom-color: #d0b0f8; }
 .col-confirm .kanban-col-title { color: #5a2da0; }
 .col-confirm .kanban-col-count { background: #e0ccff; color: #5a2da0; }
-
-/* Escaladé — orange vif */
-.col-esc {
-  border-color: #d29922;
-  background: #fffbf0;
-}
-.col-esc .kanban-col-header {
-  background: #fff3d0;
-  border-bottom-color: #f0c860;
-}
+ 
+/* Escaladé */
+.col-esc { border-color: #d29922; background: #fffbf0; }
+.col-esc .kanban-col-header { background: #fff3d0; border-bottom-color: #f0c860; }
 .col-esc .kanban-col-title { color: #8a5f00; }
 .col-esc .kanban-col-count { background: #fde89a; color: #8a5f00; }
-
-/* Résolu — vert */
-.col-done {
-  border-color: #1a7f37;
-  background: #f6fff9;
-}
-.col-done .kanban-col-header {
-  background: #e6f9ee;
-  border-bottom-color: #8dd4a8;
-}
+ 
+/* Résolu */
+.col-done { border-color: #1a7f37; background: #f6fff9; }
+.col-done .kanban-col-header { background: #e6f9ee; border-bottom-color: #8dd4a8; }
 .col-done .kanban-col-title { color: #0e5c25; }
 .col-done .kanban-col-count { background: #b2ecc8; color: #0e5c25; }
-
+ 
 .kanban-col-header {
   display: flex; align-items: center; justify-content: space-between;
   padding: 9px 11px; border-radius: 9px 9px 0 0;
@@ -214,17 +185,17 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; back
 }
 .kanban-col-title { font-size: 11px; font-weight: 600; letter-spacing: 0.01em; }
 .kanban-col-count { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; }
-
+ 
 .kanban-col-body { flex: 1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 6px; }
 .kanban-col-body::-webkit-scrollbar { width: 3px; }
 .kanban-col-body::-webkit-scrollbar-thumb { background: #e0e3e7; border-radius: 3px; }
-
+ 
 .kanban-empty {
   font-size: 11px; color: #8c959f; text-align: center;
   padding: 20px 8px; border: 1px dashed #e0e3e7; border-radius: 6px;
   background: #fafbfc;
 }
-
+ 
 /* ---- KANBAN CARD ---- */
 .kanban-card {
   background: #fff; border: 1px solid #e8eaed; border-radius: 8px;
@@ -232,7 +203,6 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; back
   display: flex; flex-direction: column; gap: 7px;
 }
 .kanban-card:hover { border-color: #b0b7c0; box-shadow: 0 2px 10px rgba(0,0,0,0.08); transform: translateY(-1px); }
-
 .kanban-card-top { display: flex; align-items: center; justify-content: space-between; }
 .kanban-card-id { font-size: 11px; font-weight: 600; color: #8c959f; font-family: monospace; }
 .kanban-card-titre { font-size: 12px; font-weight: 500; color: #1a1d23; line-height: 1.45; }
@@ -245,22 +215,22 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; back
   display: flex; align-items: center; justify-content: center;
   font-size: 8px; font-weight: 700; color: #fff; text-transform: uppercase;
 }
-
+ 
 /* ======= BADGES ======= */
 .prio-badge { font-size: 10px; font-weight: 500; padding: 2px 7px; border-radius: 20px; }
 .prio-low      { background: #dafbe1; color: #116329; }
 .prio-medium   { background: #fff8c5; color: #7d4e00; }
 .prio-high     { background: #fff0e8; color: #953800; }
 .prio-critical { background: #ffebe9; color: #82071e; }
-
+ 
 .type-badge { font-size: 10px; font-weight: 500; padding: 2px 7px; border-radius: 20px; }
 .type-bug  { background: #ffebe9; color: #82071e; }
 .type-feat { background: #ddf4ff; color: #0969da; }
 .type-cons { background: #f3ecff; color: #5a2da0; }
-
-/* ======= DETAIL CARD ======= */
+ 
+/* ======= DETAIL TICKET ======= */
 .sp-card { background: #fff; border: 1px solid #e8eaed; border-radius: 8px; padding: 24px; margin: 0 28px 28px; }
-
+ 
 .btn-back {
   background: none; border: none; color: #2f81f7; font-size: 12px;
   font-weight: 500; cursor: pointer; margin-bottom: 20px; padding: 0;
@@ -268,8 +238,7 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; back
   transition: color 0.1s;
 }
 .btn-back:hover { color: #1a6bcf; }
-
-/* ---- HEADER DU TICKET AVEC BOUTONS COLORÉS ---- */
+ 
 .ticket-pro-header {
   display: flex; align-items: flex-start; gap: 12px;
   margin-bottom: 18px; padding-bottom: 16px; border-bottom: 1px solid #eaecef;
@@ -277,6 +246,7 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; back
 .ticket-status-dot {
   width: 10px; height: 10px; border-radius: 50%; background: #e0e3e7;
   flex-shrink: 0; margin-top: 5px;
+  display: flex; align-items: center; justify-content: center;
 }
 .status-done { background: #1a7f37; }
 .status-escalated { background: #d29922; }
@@ -285,10 +255,9 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; back
 .ticket-pro-meta { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
 .ticket-meta-chip { font-size: 11px; color: #57606a; }
 .ticket-meta-sep { font-size: 11px; color: #c8d0d8; }
-
-/* ---- BOUTONS ESCALADER & ANNULER COLORÉS ---- */
+ 
+/* ---- BOUTONS ESCALADER & ANNULER ---- */
 .ticket-icon-actions { display: flex; gap: 8px; flex-shrink: 0; }
-
 .icon-action-btn {
   display: flex; align-items: center; justify-content: center;
   width: 34px; height: 34px; border-radius: 7px;
@@ -296,49 +265,74 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; back
   font-family: inherit; transition: all 0.15s;
 }
 .icon-action-btn svg { width: 13px; height: 13px; }
-
-/* Escalader — jaune/orange */
-.icon-escalade {
-  background: #fff3d0;
-  color: #8a5f00;
-  border: 1.5px solid #e3c46e;
+.icon-escalade { background: #fff3d0; color: #8a5f00; border: 1.5px solid #e3c46e; }
+.icon-escalade:hover { background: #fde89a; border-color: #d29922; color: #6d4800; transform: scale(1.05); box-shadow: 0 2px 8px rgba(210,153,34,0.25); }
+.icon-cancel { background: #ffebe9; color: #82071e; border: 1.5px solid #ffcecb; }
+.icon-cancel:hover { background: #ffc2c0; border-color: #cf222e; color: #6b0000; transform: scale(1.05); box-shadow: 0 2px 8px rgba(207,34,46,0.22); }
+ 
+/* ---- BANNIÈRE PRENDRE EN CHARGE ---- */
+.prise-en-charge-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
 }
-.icon-escalade:hover {
-  background: #fde89a;
-  border-color: #d29922;
-  color: #6d4800;
-  transform: scale(1.05);
-  box-shadow: 0 2px 8px rgba(210,153,34,0.25);
+.prise-en-charge-text {
+  font-size: 13px;
+  color: #15803d;
+  line-height: 1.5;
 }
-
-/* Annuler — rouge */
-.icon-cancel {
-  background: #ffebe9;
-  color: #82071e;
-  border: 1.5px solid #ffcecb;
+.btn-prendre-charge {
+  flex-shrink: 0;
+  padding: 8px 16px;
+  background: #16a34a;
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  transition: background 0.12s;
 }
-.icon-cancel:hover {
-  background: #ffc2c0;
-  border-color: #cf222e;
-  color: #6b0000;
-  transform: scale(1.05);
-  box-shadow: 0 2px 8px rgba(207,34,46,0.22);
-}
-
-/* ---- BODY ---- */
+.btn-prendre-charge:hover { background: #15803d; }
+ 
+/* ---- BODY TICKET ---- */
 .ticket-detail-body { background: #f8f9fb; border: 1px solid #eaecef; border-radius: 7px; padding: 14px; margin-bottom: 18px; }
 .ticket-description { font-size: 13px; color: #1a1d23; line-height: 1.7; }
-
+ 
 .alert { padding: 10px 13px; border-radius: 6px; font-size: 12px; margin-bottom: 14px; }
 .alert-error   { background: #ffebe9; color: #82071e; border: 1px solid #ffcecb; }
 .alert-success { background: #dafbe1; color: #116329; border: 1px solid #abebc6; }
-
+ 
 /* ---- PROGRESSION ---- */
 .mini-kanban-section { border: 1px solid #eaecef; border-radius: 7px; padding: 16px; margin-bottom: 18px; background: #fafbfc; }
-.mini-kanban-title { font-size: 10px; font-weight: 600; color: #6e7681; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 16px; }
+.mini-kanban-title { font-size: 10px; font-weight: 600; color: #6e7681; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 12px; }
+ 
+/* Avertissement quand le ticket n'est pas pris en charge */
+.step-blocked-warning {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fefce8;
+  border: 1px solid #fde68a;
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  font-size: 12px;
+  color: #a16207;
+  font-weight: 500;
+}
+ 
 .mini-kanban-steps { display: flex; align-items: flex-start; justify-content: center; }
 .mini-kanban-step { display: flex; flex-direction: column; align-items: center; gap: 6px; flex-shrink: 0; width: 88px; }
-
+ 
 .step-circle {
   width: 30px; height: 30px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
@@ -350,23 +344,31 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; back
 .step-escalated { background: #fffbf0; color: #7d4e00; border: 1px solid #e3b341; }
 .step-clickable { cursor: pointer !important; border: 2px dashed #2f81f7 !important; background: #f0f7ff !important; color: #2f81f7 !important; }
 .step-clickable:hover { background: #ddf4ff !important; transform: scale(1.06); }
-
+ 
 .step-label { font-size: 10px; font-weight: 500; text-align: center; line-height: 1.3; color: #6e7681; }
-.step-label-done   { color: #1a7f37; }
-.step-label-active { color: #2f81f7; font-weight: 600; }
+.step-label-done { color: #1a7f37; }
 .step-hint { font-size: 9px; color: #2f81f7; text-align: center; font-weight: 500; }
-
+ 
 .step-line { flex: 1; height: 1px; margin-bottom: 26px; }
 .step-line-done    { background: #1a7f37; }
 .step-line-pending { background: #e0e3e7; }
-
+ 
 .escalated-banner {
   display: flex; align-items: center; gap: 9px;
   background: #fffbf0; border: 1px solid #e3c46e; border-radius: 6px;
   padding: 9px 13px; margin-top: 12px;
 }
+.escalated-banner svg { color: #7d4e00; flex-shrink: 0; }
 .escalated-banner p { font-size: 12px; color: #7d4e00; font-weight: 500; margin: 0; }
-
+ 
+.solution-sent-banner {
+  display: flex; align-items: center; gap: 10px;
+  background: #fefce8; border: 1px solid #fde68a; border-radius: 8px;
+  padding: 12px 14px; margin-top: 14px;
+}
+.solution-sent-banner span { font-size: 18px; }
+.solution-sent-banner p { font-size: 13px; color: #a16207; font-weight: 500; margin: 0; }
+ 
 /* ---- TEMPS ---- */
 .temps-section { border-top: 1px solid #eaecef; padding-top: 16px; margin-bottom: 18px; }
 .temps-section h3 { font-size: 10px; font-weight: 600; color: #6e7681; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 10px; }
@@ -383,13 +385,13 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; back
   font-family: inherit; transition: background 0.12s;
 }
 .btn-temps:hover { background: #1a6bcf; }
-
+ 
 /* ---- COMMENTAIRES ---- */
 .commentaires-section { border-top: 1px solid #eaecef; padding-top: 16px; }
 .commentaires-section h3 { font-size: 10px; font-weight: 600; color: #6e7681; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 14px; }
 .commentaires-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
 .no-comment { font-size: 12px; color: #8c959f; text-align: center; padding: 18px; background: #fafbfc; border-radius: 6px; border: 1px dashed #e0e3e7; }
-
+ 
 .commentaire-item { display: flex; gap: 9px; }
 .comment-avatar {
   width: 26px; height: 26px; border-radius: 50%;
@@ -398,7 +400,7 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; back
 }
 .avatar-client  { background: #dafbe1; color: #116329; border-color: #abebc6; }
 .avatar-support { background: #ddf4ff; color: #0969da; border-color: #96cfff; }
-
+ 
 .comment-body { flex: 1; border: 1px solid #e0e3e7; border-radius: 7px; overflow: hidden; }
 .comment-header { display: flex; align-items: center; justify-content: space-between; padding: 6px 11px; background: #f6f8fa; border-bottom: 1px solid #e0e3e7; }
 .comment-author { font-size: 11px; font-weight: 600; color: #1a1d23; }
@@ -407,7 +409,7 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; back
 .comment-date { font-size: 10px; color: #8c959f; padding: 0 11px 7px; }
 .btn-delete-comment { background: none; border: none; cursor: pointer; color: #c0c8d0; padding: 2px; border-radius: 4px; transition: all 0.1s; display: flex; }
 .btn-delete-comment:hover { color: #cf222e; background: #ffebe9; }
-
+ 
 .add-comment { display: flex; flex-direction: column; gap: 7px; }
 .form-textarea {
   width: 100%; padding: 9px 11px; border: 1px solid #d0d7de; border-radius: 6px;
@@ -421,7 +423,7 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; back
   font-family: inherit; cursor: pointer; transition: background 0.12s;
 }
 .btn-primary:hover { background: #15682c; }
-
+ 
 /* ---- MODAL ESCALADE ---- */
 .modal-overlay {
   position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -460,12 +462,9 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; back
   font-family: inherit; transition: background 0.12s;
 }
 .btn-escalade-confirm:hover { background: #b5821a; }
-
+ 
 /* ---- FICHIERS JOINTS ---- */
-.ticket-fichiers-section {
-  margin-bottom: 16px; padding: 14px;
-  background: #f6f8fa; border: 1px solid #e8eaed; border-radius: 8px;
-}
+.ticket-fichiers-section { margin-bottom: 16px; padding: 14px; background: #f6f8fa; border: 1px solid #e8eaed; border-radius: 8px; }
 .ticket-fichiers-title { font-size: 12px; font-weight: 600; color: #57606a; margin: 0 0 10px; }
 .ticket-fichiers-grid { display: flex; flex-wrap: wrap; gap: 10px; }
 .ticket-fichier-item { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; width: 90px; }
@@ -475,7 +474,7 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; back
 .fichier-video-thumb { position: relative; width: 90px; height: 70px; }
 .fichier-video-thumb .fichier-thumb { width: 100%; height: 100%; }
 .fichier-video-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.3); border-radius: 6px; color: #fff; font-size: 18px; }
-
+ 
 /* ---- LIGHTBOX ---- */
 .lightbox-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,0.85);
@@ -487,11 +486,273 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; back
 }
 .lightbox-close:hover { opacity: 1; }
 .lightbox-img, .lightbox-video { max-width: 90vw; max-height: 85vh; border-radius: 8px; }
-
+ 
 .loading { text-align: center; color: #8c959f; padding: 48px; font-size: 13px; }
-
+ 
 @media (max-width: 768px) {
   .sp-sidebar { width: 52px; }
   .sp-main { margin-left: 52px; }
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
 }
+/* ══════════════════════════════════════════
+   CONVERSATION AGENT — à ajouter dans SupportDashboard.css
+   ══════════════════════════════════════════ */
+
+.conversation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 16px;
+  max-height: 480px;
+  overflow-y: auto;
+  padding: 8px 4px;
+  scroll-behavior: smooth;
+}
+
+.conversation-list::-webkit-scrollbar { width: 4px; }
+.conversation-list::-webkit-scrollbar-track { background: transparent; }
+.conversation-list::-webkit-scrollbar-thumb { background: #d0d7de; border-radius: 4px; }
+
+/* Ligne message */
+.conv-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+/* Client à gauche, agent à droite */
+.conv-row-client-left  { justify-content: flex-start; }
+.conv-row-agent-right  { justify-content: flex-end; }
+
+/* Avatar */
+.conv-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  flex-shrink: 0;
+  text-transform: uppercase;
+}
+/* Client = vert */
+.conv-avatar-client { background: #dcfce7; color: #15803d; }
+/* Agent = bleu (couleur dynamique via style inline pour moi/collègue) */
+.conv-avatar-agent  { background: #dbeafe; color: #1d4ed8; }
+
+/* Wrapper bulle */
+.conv-bubble-wrap {
+  max-width: 72%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Meta */
+.conv-meta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+.conv-meta-right { justify-content: flex-end; }
+
+.conv-author { font-size: 11px; font-weight: 600; color: #374151; }
+.conv-role   { font-size: 10px; color: #9ca3af; background: #f3f4f6; padding: 1px 6px; border-radius: 10px; }
+.conv-time   { font-size: 10px; color: #d1d5db; }
+
+/* Bulles */
+.conv-bubble {
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.6;
+  word-break: break-word;
+}
+
+/* Message du client — fond vert clair, à gauche */
+.conv-bubble-client-view {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-top-left-radius: 3px;
+  color: #14532d;
+}
+
+/* Message de l'agent — fond bleu clair, à droite */
+.conv-bubble-agent-view {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-top-right-radius: 3px;
+  color: #1e3a5f;
+}
+/* ══════════════════════════════════════════════════
+   RECHERCHE GLOBALE — ajouter dans SupportDashboard.css
+   ══════════════════════════════════════════════════ */
+
+.search-wrapper {
+  position: relative;
+  z-index: 100;
+}
+
+.search-bar-global {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 8px;
+  padding: 6px 11px;
+  width: 200px;
+  transition: width .2s, border-color .15s, background .15s;
+  cursor: text;
+}
+.search-bar-global.search-open {
+  width: 300px;
+  border-color: #378ADD;
+  background: #fff;
+}
+.search-bar-global svg { color: #aaa; flex-shrink: 0; }
+.search-bar-global.search-open svg { color: #378ADD; }
+
+.search-input-global {
+  flex: 1;
+  border: none;
+  background: none;
+  outline: none;
+  font-size: 12px;
+  color: rgba(255,255,255,0.7);
+  min-width: 0;
+}
+.search-bar-global.search-open .search-input-global { color: #1a1d23; }
+.search-input-global::placeholder { color: rgba(255,255,255,0.4); }
+.search-bar-global.search-open .search-input-global::placeholder { color: #aaa; }
+
+.search-clear {
+  background: none; border: none; cursor: pointer;
+  color: #aaa; padding: 0; display: flex; align-items: center;
+}
+.search-clear:hover { color: #57606a; }
+
+.search-overlay {
+  position: fixed; inset: 0; z-index: 90;
+}
+
+.search-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  width: 500px;
+  background: #fff;
+  border: 1px solid #d0d7de;
+  border-radius: 10px;
+  overflow: hidden;
+  z-index: 110;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+}
+
+.search-section-label {
+  font-size: 10px; font-weight: 600; color: #8c959f;
+  text-transform: uppercase; letter-spacing: .05em;
+  padding: 8px 14px 4px;
+  background: #f6f8fa;
+  border-bottom: 1px solid #eaecef;
+}
+
+.search-result-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid #f0f0ed;
+  cursor: pointer; transition: background .1s;
+}
+.search-result-item:hover { background: #f6f8fa; }
+.search-result-item:last-of-type { border-bottom: none; }
+
+.search-result-left { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1; }
+.search-result-id   { font-family: monospace; font-size: 10px; color: #aaa; flex-shrink: 0; }
+.search-result-title { font-size: 13px; font-weight: 500; color: #1a1d23; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.search-result-meta  { font-size: 11px; color: #8c959f; margin-top: 1px; }
+.search-result-right { display: flex; gap: 5px; align-items: center; flex-shrink: 0; }
+
+.search-no-results { padding: 20px; text-align: center; font-size: 13px; color: #8c959f; }
+
+.search-footer {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 7px 14px; background: #f6f8fa;
+  border-top: 1px solid #eaecef; font-size: 11px; color: #8c959f;
+}
+.search-kbd { font-size: 10px; background: #eaeef2; color: #57606a; padding: 2px 7px; border-radius: 4px; }
+
+
+/* ══════════════════════════════════════════════════
+   MODIFIER / SUPPRIMER CONVERSATION — ajouter dans SupportDashboard.css
+   ══════════════════════════════════════════════════ */
+
+.conv-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 5px;
+}
+
+.conv-btn-edit {
+  display: flex; align-items: center; gap: 3px;
+  font-size: 11px; color: #1d4ed8;
+  background: #eff6ff; border: 0.5px solid #bfdbfe;
+  border-radius: 5px; padding: 3px 8px; cursor: pointer;
+  transition: background .1s;
+}
+.conv-btn-edit:hover { background: #dbeafe; }
+
+.conv-btn-delete {
+  display: flex; align-items: center; gap: 3px;
+  font-size: 11px; color: #b91c1c;
+  background: #fef2f2; border: 0.5px solid #fecaca;
+  border-radius: 5px; padding: 3px 8px; cursor: pointer;
+  transition: background .1s;
+}
+.conv-btn-delete:hover { background: #fee2e2; }
+
+.conv-edit-inline { margin-top: 4px; }
+
+.conv-edit-textarea {
+  width: 100%;
+  border: 1px solid #378ADD;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13px; font-family: inherit;
+  resize: none; outline: none;
+  background: #fff; color: #1a1d23; line-height: 1.5;
+}
+
+.conv-edit-actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 5px; }
+
+.conv-edit-cancel {
+  font-size: 12px; padding: 4px 12px; border-radius: 6px;
+  border: 1px solid #d0d7de; background: #f6f8fa; color: #57606a; cursor: pointer;
+}
+.conv-edit-cancel:hover { background: #eaecef; }
+
+.conv-edit-save {
+  font-size: 12px; font-weight: 500; padding: 4px 14px; border-radius: 6px;
+  border: none; background: #2563eb; color: #fff; cursor: pointer;
+}
+.conv-edit-save:disabled { opacity: 0.5; cursor: not-allowed; }
+.conv-edit-save:hover:not(:disabled) { background: #1d4ed8; }
+
+.conv-edited { font-size: 10px; color: #9ca3af; font-style: italic; }
+/* ══════════════════════════════════════════
+   À AJOUTER dans SupportDashboard.css
+   ══════════════════════════════════════════ */
+
+/* 5ème card SLA dépassés */
+.stat-sla {
+  border-color: rgba(226, 75, 74, 0.2);
+}
+.stat-sla .stat-number {
+  color: #888780;
+}
+.stat-sla .stat-label {
+  color: #888780;
+}
+/* Quand il y a des SLA dépassés — style appliqué via inline style dans le JS */

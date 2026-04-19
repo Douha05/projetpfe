@@ -1,0 +1,1 @@
+const mongoose=require('mongoose');const config=require('config');mongoose.connect(config.get('mongoURI')).then(async()=>{const op={};op[String.fromCharCode(36)+'set']={slaConfig:{critical:4,high:8,medium:24,low:72}};await mongoose.connection.collection('workflows').updateOne({},op);console.log('slaConfig ajoute!');process.exit(0);});

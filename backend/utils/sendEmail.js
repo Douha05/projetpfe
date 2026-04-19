@@ -10,17 +10,6 @@ const transporter = nodemailer.createTransport({
 });
 
 const sendEmail = async ({ to, subject, html }) => {
-  // Afficher dans le terminal pour debug
-  console.log("=============================");
-  console.log("📧 Email à envoyer :");
-  console.log("À :", to);
-  console.log("Sujet :", subject);
-  
-  // Extraire le code du HTML
-  const codeMatch = html.match(/font-size:36px[^>]*>[\s]*(\d{6})/);
-  if (codeMatch) console.log("🔑 CODE :", codeMatch[1]);
-  console.log("=============================");
-
   try {
     await transporter.sendMail({
       from: `"devapp Support" <${config.get("emailUser")}>`,

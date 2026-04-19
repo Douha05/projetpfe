@@ -1,0 +1,329 @@
+const cron = require("node-cron");
+const Ticket = require("../models/Ticket");
+const Notification = require("../models/Notification");
+const User = require("../models/User");
+const Workflow = require("../models/Workflow");
+
+// ─── Helper : enregistre une entrée dans l'historique (audit log) ───────────
+const pushAudit = async (ticketId, action, details = "") => {
+  try {
+    await Ticket.findByIdAndUpdate(ticketId, {
+      $push: {
+        historique: {
+          action,
+          auteur:    null, // null = système automatique
+          auteurNom: "Système automatique",
+          details,
+          createdAt: new Date(),
+        },
+      },
+    });
+  } catch (e) {
+    console.error("❌ Erreur audit log :", e.message);
+  }
+};
+
+const lancerEscaladeAuto = () => {
+  cron.schedule("* * * * *", async () => {
+    try {
+      const workflow = await Workflow.findOne();
+      if (!workflow) return;
+
+      // ════════════════════════════════════════════════════════
+      // 1. FERMETURE AUTOMATIQUE
+      //    Tickets "À confirmer" depuis 7 jours sans réponse
+      // ════════════════════════════════════════════════════════
+      const DELAI_FERMETURE_JOURS = 7;
+      const dateLimit = new Date();
+      dateLimit.setDate(dateLimit.getDate() - DELAI_FERMETURE_JOURS);
+
+      const ticketsAFermer = await Ticket.find({
+        statut: "ready_for_customer",
+        statutChangedAt: { $lte: dateLimit },
+        "feedback.note": null,
+        bloque: { $ne: true },
+      });
+
+      if (ticketsAFermer.length > 0) {
+        console.log(`🔒 ${ticketsAFermer.length} ticket(s) à fermer automatiquement...`);
+      }
+
+      for (const ticket of ticketsAFermer) {
+        console.log(`🔒 FERMETURE AUTO : "${ticket.titre}"`);
+
+        ticket.statut = "solved";
+        ticket.statutChangedAt = new Date();
+        await ticket.save();
+
+        // ✅ AUDIT LOG — fermeture automatique
+        await pushAudit(
+          ticket._id,
+          "auto_closed",
+          `Fermé automatiquement — client sans réponse depuis ${DELAI_FERMETURE_JOURS} jours`
+        );
+
+        // Notif client
+        await Notification.create({
+          destinataire: ticket.reporter,
+          ticket: ticket._id,
+          message: `✅ Votre ticket "${ticket.titre}" a été résolu automatiquement. Vous n'avez pas répondu dans les ${DELAI_FERMETURE_JOURS} jours. Si le problème persiste, créez un nouveau ticket.`,
+          type: "ticket_resolu",
+          lu: false,
+        });
+
+        // Notif agent
+        if (ticket.assignee) {
+          await Notification.create({
+            destinataire: ticket.assignee,
+            ticket: ticket._id,
+            message: `✅ Le ticket "${ticket.titre}" a été résolu automatiquement — client sans réponse depuis ${DELAI_FERMETURE_JOURS} jours.`,
+            type: "ticket_resolu",
+            lu: false,
+          });
+        }
+
+        // Notif team leads
+        const teamLeads = await User.find({ role: "team_lead", isActive: true });
+        if (teamLeads.length > 0) {
+          await Notification.insertMany(
+            teamLeads.map((tl) => ({
+              destinataire: tl._id,
+              ticket: ticket._id,
+              message: `✅ Ticket "${ticket.titre}" résolu automatiquement après ${DELAI_FERMETURE_JOURS} jours sans réponse client.`,
+              type: "ticket_resolu",
+              lu: false,
+            }))
+          );
+        }
+
+        console.log(`✅ Ticket "${ticket.titre}" fermé automatiquement`);
+      }
+
+      // ════════════════════════════════════════════════════════
+      // 2. RAPPEL + ESCALADE AUTOMATIQUE
+      //    Tickets actifs (hors solved, closed, cancelled, escalated)
+      // ════════════════════════════════════════════════════════
+      const tickets = await Ticket.find({
+        statut: { $nin: ["escalated", "solved", "closed", "cancelled"] },
+        bloque: { $ne: true },
+      });
+
+      if (tickets.length === 0) {
+        console.log("📭 Aucun ticket actif à vérifier.");
+        return;
+      }
+
+      console.log(`🔄 Vérification de ${tickets.length} ticket(s)...`);
+
+      for (const ticket of tickets) {
+        const transition = workflow.transitions.find(
+          (t) => t.de === ticket.statut && t.active
+        );
+
+        console.log(
+          `📋 Transition pour "${ticket.titre}":`,
+          transition
+            ? `${transition.de} → ${transition.vers} | délaiMinutes: ${transition.delaiEscaladeMinutes} | délaiHeures: ${transition.delaiEscaladeHeures}`
+            : "AUCUNE"
+        );
+
+        if (!transition) {
+          console.log(`⏭️ "${ticket.titre}" — aucune transition active depuis "${ticket.statut}"`);
+          continue;
+        }
+
+        const delaiMinutes =
+          transition.delaiEscaladeMinutes ||
+          (transition.delaiEscaladeHeures
+            ? Math.round(transition.delaiEscaladeHeures * 60)
+            : null);
+
+        const delaiRappelMinutes = delaiMinutes
+          ? Math.floor(delaiMinutes / 2)
+          : 24 * 60;
+
+        const reference = ticket.statutChangedAt || ticket.createdAt;
+        const maintenant = new Date();
+        const depuisMinutes = (maintenant - new Date(reference)) / 1000 / 60;
+
+        // Calcul du pourcentage SLA pour le frontend
+        const slaPourcentage = delaiMinutes
+          ? Math.min(Math.round((depuisMinutes / delaiMinutes) * 100), 100)
+          : null;
+
+        // Mise à jour du champ slaBreached et slaPourcentage sur le ticket
+        const slaDepasse = delaiMinutes && depuisMinutes >= delaiMinutes;
+        if (ticket.slaBreached !== slaDepasse || ticket.slaPourcentage !== slaPourcentage) {
+          await Ticket.findByIdAndUpdate(ticket._id, {
+            slaBreached: slaDepasse,
+            slaPourcentage: slaPourcentage,
+            slaDelaiMinutes: delaiMinutes,
+            slaDepuisMinutes: Math.round(depuisMinutes),
+          });
+        }
+
+        console.log(
+          `🔍 "${ticket.titre}" — statut: ${ticket.statut} — depuis: ${depuisMinutes.toFixed(1)}min — délai: ${delaiMinutes || "N/A"}min — SLA: ${slaPourcentage || "N/A"}%`
+        );
+
+        // ── RAPPEL D'INACTIVITÉ ──────────────────────────────
+        const dejàRappele =
+          ticket.rappelInactiviteAt &&
+          new Date() - new Date(ticket.rappelInactiviteAt) < delaiRappelMinutes * 60 * 1000 * 2;
+
+        if (
+          depuisMinutes >= delaiRappelMinutes &&
+          depuisMinutes < (delaiMinutes || Infinity) &&
+          !dejàRappele
+        ) {
+          console.log(`🔔 RAPPEL INACTIVITÉ : "${ticket.titre}" — ${depuisMinutes.toFixed(1)}min`);
+
+          ticket.rappelInactiviteAt = new Date();
+          await ticket.save();
+
+          // ✅ AUDIT LOG — rappel inactivité
+          await pushAudit(
+            ticket._id,
+            "sla_warning",
+            `Rappel inactivité envoyé — ${Math.round(depuisMinutes)}min écoulées sur ${delaiMinutes || "24h"} autorisées (${slaPourcentage || "?"}%)`
+          );
+
+          if (ticket.assignee) {
+            await Notification.create({
+              destinataire: ticket.assignee,
+              ticket: ticket._id,
+              message: `⏰ Rappel : votre ticket "${ticket.titre}" est inactif depuis ${Math.round(depuisMinutes)} min. Veuillez le traiter avant escalade automatique.`,
+              type: "statut_change",
+              lu: false,
+            });
+            console.log(`✅ Rappel envoyé à l'agent`);
+          }
+
+          const teamLeads = await User.find({ role: "team_lead", isActive: true });
+          if (teamLeads.length > 0) {
+            await Notification.insertMany(
+              teamLeads.map((tl) => ({
+                destinataire: tl._id,
+                ticket: ticket._id,
+                message: `⚠️ Le ticket "${ticket.titre}" est inactif depuis ${Math.round(depuisMinutes)} min${ticket.assignee ? ` — agent : ${ticket.assignee}` : " — non assigné"}.`,
+                type: "statut_change",
+                lu: false,
+              }))
+            );
+            console.log(`✅ ${teamLeads.length} chef(s) d'équipe notifié(s) du rappel`);
+          }
+        }
+
+        // ── ESCALADE AUTOMATIQUE ─────────────────────────────
+        if (delaiMinutes && depuisMinutes >= delaiMinutes) {
+          console.log(`⚠️ ESCALADE AUTO : "${ticket.titre}"`);
+
+          const ancienStatut = ticket.statut;
+
+          ticket.statut = "escalated";
+          ticket.statutChangedAt = new Date();
+          ticket.rappelInactiviteAt = null;
+          ticket.slaBreached = true;
+          ticket.escalade = {
+            raison: `Escalade automatique — aucune action après ${delaiMinutes} minute(s)`,
+            urgence: "urgent",
+            escaladeAt: new Date(),
+          };
+          await ticket.save();
+
+          // ✅ AUDIT LOG — escalade automatique + SLA dépassé
+          await pushAudit(
+            ticket._id,
+            "auto_escalated",
+            `Escalade automatique — SLA dépassé (${Math.round(depuisMinutes)}min / ${delaiMinutes}min). Statut : ${ancienStatut} → escalated`
+          );
+
+          // ✅ AUDIT LOG — breach SLA séparé pour la BI
+          await pushAudit(
+            ticket._id,
+            "sla_breach",
+            `SLA dépassé de ${Math.round(depuisMinutes - delaiMinutes)}min`
+          );
+
+          const teamLeads = await User.find({ role: "team_lead", isActive: true });
+          if (teamLeads.length > 0) {
+            await Notification.insertMany(
+              teamLeads.map((tl) => ({
+                destinataire: tl._id,
+                ticket: ticket._id,
+                message: `⏱️ Escalade automatique [URGENT] : "${ticket.titre}" — inactif depuis ${delaiMinutes} min`,
+                type: "ticket_escalade",
+                lu: false,
+              }))
+            );
+            console.log(`✅ ${teamLeads.length} chef(s) d'équipe notifié(s)`);
+          } else {
+            console.log("⚠️ Aucun chef d'équipe actif trouvé !");
+          }
+
+          await Notification.create({
+            destinataire: ticket.reporter,
+            ticket: ticket._id,
+            message: `Votre ticket "${ticket.titre}" a été transmis au chef d'équipe.`,
+            type: "ticket_escalade",
+            lu: false,
+          });
+
+          if (ticket.assignee) {
+            await Notification.create({
+              destinataire: ticket.assignee,
+              ticket: ticket._id,
+              message: `⏱️ Votre ticket "${ticket.titre}" a été escaladé automatiquement faute d'action.`,
+              type: "ticket_escalade",
+              lu: false,
+            });
+          }
+        }
+
+        // ── RAPPEL 24H PAR DÉFAUT (si pas de délai configuré) ──
+        if (!delaiMinutes && depuisMinutes >= delaiRappelMinutes && !dejàRappele) {
+          console.log(`🔔 RAPPEL (défaut 24h) : "${ticket.titre}"`);
+
+          ticket.rappelInactiviteAt = new Date();
+          await ticket.save();
+
+          // ✅ AUDIT LOG — rappel défaut
+          await pushAudit(
+            ticket._id,
+            "sla_warning",
+            `Rappel inactivité (délai par défaut 24h) — ${Math.round(depuisMinutes)}min écoulées`
+          );
+
+          if (ticket.assignee) {
+            await Notification.create({
+              destinataire: ticket.assignee,
+              ticket: ticket._id,
+              message: `⏰ Rappel : votre ticket "${ticket.titre}" est inactif depuis 24h. Veuillez le traiter.`,
+              type: "statut_change",
+              lu: false,
+            });
+          }
+
+          const teamLeads = await User.find({ role: "team_lead", isActive: true });
+          if (teamLeads.length > 0) {
+            await Notification.insertMany(
+              teamLeads.map((tl) => ({
+                destinataire: tl._id,
+                ticket: ticket._id,
+                message: `⚠️ Le ticket "${ticket.titre}" est inactif depuis 24h${ticket.assignee ? "" : " — non assigné"}.`,
+                type: "statut_change",
+                lu: false,
+              }))
+            );
+          }
+        }
+      }
+    } catch (err) {
+      console.error("❌ Erreur escalade automatique :", err.message);
+    }
+  });
+
+  console.log("✅ Job escalade automatique démarré");
+};
+
+module.exports = lancerEscaladeAuto;

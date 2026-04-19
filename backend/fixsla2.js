@@ -1,0 +1,1 @@
+const mongoose=require('mongoose');const config=require('config');const Workflow=require('./models/Workflow');mongoose.connect(config.get('mongoURI')).then(async()=>{const w=await Workflow.findOne();w.slaConfig={critical:4,high:8,medium:24,low:72};await w.save();console.log('OK:',JSON.stringify(w.slaConfig));process.exit(0);});
