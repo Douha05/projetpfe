@@ -1,37 +1,35 @@
-const fetch  = require('node-fetch');
-const config = require('config');
+const fetch = require('node-fetch');
 
-const MODEL = "nvidia/nemotron-3-super-120b-a12b:free";
-const API_KEY = config.get('openRouterKey');
+const MODEL      = "llama3.2:3b";
+const OLLAMA_URL = "http://localhost:11434/api/chat";
 
 // ─────────────────────────────────────────
 // Fetch avec retry automatique (3 tentatives)
 // ─────────────────────────────────────────
-const fetchAvecRetry = async (body, maxTentatives = 3) => {
+const fetchAvecRetry = async (messages, maxTentatives = 3) => {
   for (let i = 1; i <= maxTentatives; i++) {
     console.log(`   🔄 Tentative ${i}/${maxTentatives}...`);
 
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    const response = await fetch(OLLAMA_URL, {
       method: "POST",
-      headers: {
-        "Authorization": `Bearer ${API_KEY}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(body)
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model:  MODEL,
+        messages,
+        stream: false
+      })
     });
 
-    const result = await response.json();
-
-    if (!result.error) return result;
-
-    console.log(`   ⚠️  Erreur tentative ${i} : ${result.error.message}`);
-    console.log(`   🔴 Détail complet : ${JSON.stringify(result.error, null, 2)}`);
-
-    if (i === maxTentatives) {
-      throw new Error(`OpenRouter error: ${result.error.message}`);
+    if (!response.ok) {
+      const errText = await response.text();
+      console.log(`   ⚠️  Erreur tentative ${i} : ${errText}`);
+      if (i === maxTentatives) throw new Error(`Ollama error: ${errText}`);
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      continue;
     }
 
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    const result = await response.json();
+    return result;
   }
 };
 
@@ -41,18 +39,13 @@ const fetchAvecRetry = async (body, maxTentatives = 3) => {
 const callLLM = async (systemPrompt, userPrompt) => {
   const debut = Date.now();
 
-  const result = await fetchAvecRetry({
-    model: MODEL,
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user",   content: userPrompt }
-    ]
-  });
-
-  const assistantMsg = result.choices[0].message;
+  const result = await fetchAvecRetry([
+    { role: "system", content: systemPrompt },
+    { role: "user",   content: userPrompt   }
+  ]);
 
   return {
-    reponse:      assistantMsg.content,
+    reponse:      result.message.content,
     raisonnement: null,
     dureeMs:      Date.now() - debut
   };
@@ -65,29 +58,23 @@ const callLLMWithValidation = async (systemPrompt, userPrompt, questionValidatio
   const debut = Date.now();
 
   // --- Tour 1 ---
-  const result1 = await fetchAvecRetry({
-    model: MODEL,
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user",   content: userPrompt }
-    ]
-  });
+  const result1 = await fetchAvecRetry([
+    { role: "system", content: systemPrompt },
+    { role: "user",   content: userPrompt   }
+  ]);
 
-  const assistantMsg = result1.choices[0].message;
+  const assistantMsg = result1.message.content;
 
   // --- Tour 2 ---
-  const result2 = await fetchAvecRetry({
-    model: MODEL,
-    messages: [
-      { role: "system",    content: systemPrompt      },
-      { role: "user",      content: userPrompt        },
-      { role: "assistant", content: assistantMsg.content },
-      { role: "user",      content: questionValidation }
-    ]
-  });
+  const result2 = await fetchAvecRetry([
+    { role: "system",    content: systemPrompt      },
+    { role: "user",      content: userPrompt        },
+    { role: "assistant", content: assistantMsg      },
+    { role: "user",      content: questionValidation }
+  ]);
 
   return {
-    reponse:      result2.choices[0].message.content,
+    reponse:      result2.message.content,
     raisonnement: null,
     dureeMs:      Date.now() - debut
   };
@@ -97,22 +84,37 @@ const callLLMWithValidation = async (systemPrompt, userPrompt, questionValidatio
 // Parser le JSON retourné par le LLM
 // ─────────────────────────────────────────
 const parseJSON = (texte) => {
-  // Nettoyer les balises markdown
   let propre = texte
     .replace(/```json/gi, '')
     .replace(/```/g, '')
     .trim();
 
-  // Extraire uniquement le bloc JSON entre { et }
   const debut = propre.indexOf('{');
   const fin   = propre.lastIndexOf('}');
 
   if (debut === -1 || fin === -1) {
-    throw new Error(`Aucun JSON trouvé dans la réponse : ${propre.substring(0, 100)}`);
+    throw new Error(`Aucun JSON trouvé : ${propre.substring(0, 100)}`);
   }
 
   propre = propre.substring(debut, fin + 1);
 
-  return JSON.parse(propre);
+  // Nettoyer les caractères problématiques
+  propre = propre
+    .replace(/[\u0000-\u001F\u007F-\u009F]/g, ' ')
+    .replace(/\\'/g, "'")
+    .replace(/\n/g, ' ')
+    .replace(/\r/g, ' ')
+    .replace(/\t/g, ' ');
+
+  try {
+    return JSON.parse(propre);
+  } catch (e) {
+    try {
+      return JSON.parse(JSON.stringify(eval('(' + propre + ')')));
+    } catch {
+      throw new Error(`JSON invalide : ${e.message} — ${propre.substring(0, 200)}`);
+    }
+  }
 };
+
 module.exports = { callLLM, callLLMWithValidation, parseJSON };

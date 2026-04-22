@@ -4,10 +4,10 @@ const User = require('../../models/User');
 
 const assignerTicket = async (ticket, classification) => {
 
-  // --- Récupérer les agents disponibles (role: support) ---
+  // --- Récupérer les agents disponibles avec leur score ---
   const agents = await User.find(
     { role: 'support', isActive: true },
-    'id prenom nom specialites workloadActuel departement'
+    'prenom nom specialites workloadActuel departement scoreCompetence'
   );
 
   if (agents.length === 0) {
@@ -16,10 +16,12 @@ const assignerTicket = async (ticket, classification) => {
 
   const systemPrompt = `
     Tu es un système d'assignation intelligente de tickets de support.
-    Tu choisis le meilleur agent selon ces critères dans l'ordre :
-      1. Spécialités de l'agent vs catégorie du ticket
-      2. Workload actuel (moins il a de tickets, mieux c'est)
-      3. Département de l'agent
+    Tu choisis le meilleur agent selon ces critères dans l'ordre de priorité :
+      1. Score de compétence global (plus il est élevé, mieux c'est)
+      2. Spécialités de l'agent vs catégorie du ticket
+      3. Workload actuel (moins il a de tickets, mieux c'est)
+      4. Taux de résolution historique
+      5. Satisfaction client historique
     Tu réponds UNIQUEMENT en JSON valide, sans texte avant ou après.
     Format exact :
     {
@@ -38,26 +40,49 @@ const assignerTicket = async (ticket, classification) => {
     Catégorie  : ${classification.categorie}
     Priorité   : ${classification.priorite}
     Complexité : ${classification.complexite}
-    Tags       : ${classification.tags.join(', ')}
+    Tags       : ${(classification.tags || []).join(', ')}
 
     AGENTS DISPONIBLES :
-    ${agents.map(a => `
-      - ID         : ${a._id}
-        Nom        : ${a.prenom} ${a.nom}
-        Workload   : ${a.workloadActuel} tickets en cours
-        Spécialités: ${a.specialites && a.specialites.length > 0 ? a.specialites.join(', ') : 'Généraliste'}
-        Département: ${a.departement || 'Non défini'}
-    `).join('\n')}
+    ${agents.map(a => {
+      const sc = a.scoreCompetence;
+      return `
+      - ID              : ${a._id}
+        Nom             : ${a.prenom} ${a.nom}
+        Workload actuel : ${a.workloadActuel || 0} tickets en cours
+        Spécialités     : ${a.specialites && a.specialites.length > 0 ? a.specialites.join(', ') : 'Généraliste'}
+        Département     : ${a.departement || 'Non défini'}
+        Score global    : ${sc?.scoreGlobal ?? 50}/100
+        Taux résolution : ${sc?.tauxResolution ?? 0}%
+        Satisfaction    : ${sc?.satisfaction ?? 0}/5
+        Taux SLA        : ${sc?.tauxSla ?? 50}%
+        Temps moyen     : ${sc?.tempsMoyen ?? 0} min
+        Tickets traités : ${sc?.nbTickets ?? 0}
+      `;
+    }).join('\n')}
   `;
 
-  // Double tour car assignation = décision critique
   const llmResult = await callLLMWithValidation(
     systemPrompt,
     userPrompt,
-    "Vérifie ton choix : l'agent a-t-il le bon équilibre spécialité/workload ? JSON valide uniquement."
+    "Vérifie ton choix : l'agent a-t-il le meilleur score de compétence pour ce type de ticket ? JSON valide uniquement."
   );
 
   const assignation = parseJSON(llmResult.reponse);
+
+  // Vérifier que agentId est présent
+  if (!assignation.agentId) {
+    // Fallback : prendre l'agent avec le meilleur score global
+    const meilleurAgent = agents.reduce((best, a) => {
+      const scoreA    = a.scoreCompetence?.scoreGlobal ?? 50;
+      const scoreBest = best.scoreCompetence?.scoreGlobal ?? 50;
+      return scoreA > scoreBest ? a : best;
+    }, agents[0]);
+
+    assignation.agentId        = meilleurAgent._id;
+    assignation.agentNom       = `${meilleurAgent.prenom} ${meilleurAgent.nom}`;
+    assignation.raison         = `Assignation par score (${meilleurAgent.scoreCompetence?.scoreGlobal ?? 50}/100)`;
+    assignation.scoreConfiance = 0.5;
+  }
 
   // Incrémenter le workload de l'agent choisi
   await User.findByIdAndUpdate(

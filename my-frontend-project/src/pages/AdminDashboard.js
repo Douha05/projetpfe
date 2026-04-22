@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import "./AdminDashboard.css";
 import BIDashboard from "./BIDashboard";
@@ -21,6 +21,19 @@ const formatDelai = (t) => { if (!t) return null; const h=Math.floor(t/60), m=t%
 const getFeedbackStyle = (n) => { if(n>=4) return {background:"#EAF3DE",color:"#3B6D11",border:"2px solid #639922"}; if(n===3) return {background:"#FAEEDA",color:"#854F0B",border:"2px solid #EF9F27"}; return {background:"#FCEBEB",color:"#A32D2D",border:"2px solid #E24B4A"}; };
 
 const SLA_DEFAUTS = { critical: 4, high: 8, medium: 24, low: 72 };
+
+// ═══ Drag & Drop KPI Monitoring ═══
+const LS_MONITORING_ORDER = "monitoring_kpi_order";
+const DEFAULT_MONITORING_ORDER = [0, 1, 2, 3, 4, 5, 6, 7]; // 8 cartes (6 globales + 2 sur 24h)
+
+// ═══ Drag & Drop Tableau de bord (section A) ═══
+const LS_DASHBOARD_KPI_ORDER   = "dashboard_kpi_order";
+const LS_DASHBOARD_GRAPH_ORDER = "dashboard_graph_order";
+const DEFAULT_DASHBOARD_KPI_ORDER   = [0, 1, 2, 3];  // 4 KPI
+const DEFAULT_DASHBOARD_GRAPH_ORDER = [0, 1];        // 2 graphs
+
+const lsGet = (k, fb) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : fb; } catch { return fb; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
 
 const HIST_CONFIG = {
   auto_escalated: { label: "Escalade automatique", bg: "#FCEBEB", border: "#F7C1C1", color: "#791F1F", dotBg: "#FCEBEB", dotBorder: "#F7C1C1" },
@@ -59,7 +72,7 @@ const PAGE_TITLES = {
   "workflow":        { title: "Workflow",        sub: "Configuration des transitions" },
   "sla":             { title: "SLA",             sub: "Configuration & suivi des délais de résolution" },
   "analytics":       { title: "Analytics",       sub: "Tableau de bord & statistiques" },
-  "ia-admin":        { title: "Analyse IA",      sub: "Tableau de bord IA global — Suggestions — Monitoring" },
+  "ia-admin":        { title: "Analyse IA",      sub: "Supervision globale — Consultation en lecture seule" },
   "demandes":        { title: "Demandes reset",  sub: "Réinitialisation de mots de passe" },
 };
 
@@ -164,7 +177,11 @@ function SlaPage({ token }) {
 }
 
 // ============================================================
-// NOUVEAU COMPOSANT : PAGE ANALYSE IA ADMIN (Option D)
+// COMPOSANT PAGE ANALYSE IA ADMIN — MODE CONSULTATION
+// ============================================================
+// L'admin consulte uniquement les données. Aucune action (pas d'analyse,
+// pas d'accepter/rejeter). Cette page sert à superviser le travail IA
+// fait par les team leads et agents support.
 // ============================================================
 function IaAdminPage({ token }) {
   const [iaStats,      setIaStats]      = useState(null);
@@ -172,10 +189,66 @@ function IaAdminPage({ token }) {
   const [suggestions,  setSuggestions]  = useState([]);
   const [logs,         setLogs]         = useState([]);
   const [loading,      setLoading]      = useState(true);
-  const [iaMsg,        setIaMsg]        = useState("");
   const [filterSug,    setFilterSug]    = useState("tous");
   const [filterType,   setFilterType]   = useState("tous");
-  const [iaLoadingId,  setIaLoadingId]  = useState(null);
+  const [filterLogs,   setFilterLogs]   = useState("tous");
+  const [logsVisibles, setLogsVisibles] = useState(10); // Pagination logs (+10 à chaque clic)
+  const [sugsVisibles, setSugsVisibles] = useState(30); // Pagination suggestions (+10 à chaque clic)
+  const [tnaVisibles,  setTnaVisibles]  = useState(8);  // Pagination tickets non analysés (+10 à chaque clic)
+
+  // ═══ Drag & Drop des KPI monitoring (même logique que BIDashboard) ═══
+  const [kpiOrder, setKpiOrder]       = useState(() => lsGet(LS_MONITORING_ORDER, DEFAULT_MONITORING_ORDER));
+  const [dragOverKpi, setDragOverKpi] = useState(null);
+  const dragKpi = useRef(null);
+  useEffect(() => { lsSet(LS_MONITORING_ORDER, kpiOrder); }, [kpiOrder]);
+
+  const kpiDS = op => e => { dragKpi.current = op; e.dataTransfer.effectAllowed = "move"; };
+  const kpiDO = op => e => { e.preventDefault(); setDragOverKpi(op); };
+  const kpiDP = op => e => {
+    e.preventDefault();
+    const s = dragKpi.current;
+    if (s == null || s === op) { setDragOverKpi(null); return; }
+    setKpiOrder(prev => { const n = [...prev]; [n[s], n[op]] = [n[op], n[s]]; return n; });
+    dragKpi.current = null;
+    setDragOverKpi(null);
+  };
+  const kpiDE = () => { dragKpi.current = null; setDragOverKpi(null); };
+
+  // ═══ Drag & Drop du Tableau de bord (section A) ═══
+  const [dashKpiOrder,   setDashKpiOrder]   = useState(() => lsGet(LS_DASHBOARD_KPI_ORDER,   DEFAULT_DASHBOARD_KPI_ORDER));
+  const [dashGraphOrder, setDashGraphOrder] = useState(() => lsGet(LS_DASHBOARD_GRAPH_ORDER, DEFAULT_DASHBOARD_GRAPH_ORDER));
+  const [dragOverDashKpi,   setDragOverDashKpi]   = useState(null);
+  const [dragOverDashGraph, setDragOverDashGraph] = useState(null);
+  const dragDashKpi   = useRef(null);
+  const dragDashGraph = useRef(null);
+  useEffect(() => { lsSet(LS_DASHBOARD_KPI_ORDER,   dashKpiOrder);   }, [dashKpiOrder]);
+  useEffect(() => { lsSet(LS_DASHBOARD_GRAPH_ORDER, dashGraphOrder); }, [dashGraphOrder]);
+
+  // Handlers Dashboard KPI
+  const dkpiDS = op => e => { dragDashKpi.current = op; e.dataTransfer.effectAllowed = "move"; };
+  const dkpiDO = op => e => { e.preventDefault(); setDragOverDashKpi(op); };
+  const dkpiDP = op => e => {
+    e.preventDefault();
+    const s = dragDashKpi.current;
+    if (s == null || s === op) { setDragOverDashKpi(null); return; }
+    setDashKpiOrder(prev => { const n = [...prev]; [n[s], n[op]] = [n[op], n[s]]; return n; });
+    dragDashKpi.current = null;
+    setDragOverDashKpi(null);
+  };
+  const dkpiDE = () => { dragDashKpi.current = null; setDragOverDashKpi(null); };
+
+  // Handlers Dashboard Graphs
+  const dgDS = op => e => { dragDashGraph.current = op; e.dataTransfer.effectAllowed = "move"; };
+  const dgDO = op => e => { e.preventDefault(); setDragOverDashGraph(op); };
+  const dgDP = op => e => {
+    e.preventDefault();
+    const s = dragDashGraph.current;
+    if (s == null || s === op) { setDragOverDashGraph(null); return; }
+    setDashGraphOrder(prev => { const n = [...prev]; [n[s], n[op]] = [n[op], n[s]]; return n; });
+    dragDashGraph.current = null;
+    setDragOverDashGraph(null);
+  };
+  const dgDE = () => { dragDashGraph.current = null; setDragOverDashGraph(null); };
   const [section,      setSection]      = useState("dashboard");
 
   useEffect(() => {
@@ -194,7 +267,6 @@ function IaAdminPage({ token }) {
       if (statsData)          setIaStats(statsData);
       if (ticketsData.status === "ok") setTickets(ticketsData.tickets);
 
-      // Fetch suggestions pour tous les tickets analysés
       const ticketsAnalyses = (ticketsData.tickets || []).filter(t => t.iaTraite);
       const allSuggestions = [];
       const allLogs = [];
@@ -218,27 +290,6 @@ function IaAdminPage({ token }) {
       setLogs(allLogs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
     } catch {}
     finally { setLoading(false); }
-  };
-
-  const lancerAnalyse = async (ticketId) => {
-    setIaLoadingId(ticketId);
-    setIaMsg("");
-    try {
-      const res = await fetch(`${API}/ia/analyser/${ticketId}`, {
-        method: "POST", headers: { Authorization: `Bearer ${token}` }
-      });
-      const d = await res.json();
-      if (d.succes || d.analyse) {
-        setIaMsg("✅ Analyse terminée !");
-        fetchAll();
-      } else {
-        setIaMsg("❌ Erreur : " + (d.message || d.erreur || "Inconnue"));
-      }
-    } catch { setIaMsg("❌ Erreur réseau"); }
-    finally {
-      setIaLoadingId(null);
-      setTimeout(() => setIaMsg(""), 4000);
-    }
   };
 
   const ticketsAnalyses    = tickets.filter(t => t.iaTraite);
@@ -267,7 +318,22 @@ function IaAdminPage({ token }) {
     return matchStatut && matchType;
   });
 
-  // Performance par type
+  // Dédoublonnage : pour chaque couple (ticketId + type), ne garde que la suggestion
+  // avec le plus haut score de confiance. Évite d'afficher 2× "Réponse auto" 85%/90%
+  // pour le même ticket quand l'IA a été relancée ou a généré des doublons.
+  const sugsDedupliquees = (() => {
+    const byKey = {};
+    sugsFiltrees.forEach(s => {
+      const ticketId = s.ticket?._id || "sans_ticket";
+      const key = `${ticketId}__${s.type}`;
+      const score = s.scoreConfiance ?? 0;
+      if (!byKey[key] || score > (byKey[key].scoreConfiance ?? 0)) {
+        byKey[key] = s;
+      }
+    });
+    return Object.values(byKey);
+  })();
+
   const perfParType = Object.keys(SUG_TYPES).map(type => {
     const total  = suggestions.filter(s => s.type === type).length;
     const acc    = suggestions.filter(s => s.type === type && s.statut === "acceptee").length;
@@ -291,9 +357,20 @@ function IaAdminPage({ token }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
 
-      {iaMsg && (
-        <div className={`alert ${iaMsg.startsWith("✅") ? "alert-success" : "alert-error"}`}>{iaMsg}</div>
-      )}
+      {/* Bandeau mode consultation */}
+      <div style={{
+        display: "flex", alignItems: "center", gap: 10, padding: "10px 14px",
+        background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 8
+      }}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1d4ed8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}>
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="16" x2="12" y2="12"/>
+          <line x1="12" y1="8" x2="12.01" y2="8"/>
+        </svg>
+        <p style={{ fontSize: 12, color: "#1d4ed8", margin: 0, lineHeight: 1.5 }}>
+          <strong>Mode supervision :</strong> cette page vous permet de consulter les analyses IA, les suggestions et les performances du système. Les actions (lancer une analyse, accepter/rejeter) sont réservées aux chefs d'équipe et agents support.
+        </p>
+      </div>
 
       {/* Tabs sections */}
       <div style={{ display: "flex", gap: 4, borderBottom: "0.5px solid var(--color-border-tertiary)", marginBottom: 4 }}>
@@ -320,107 +397,221 @@ function IaAdminPage({ token }) {
       {section === "dashboard" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
 
-          {/* KPIs */}
+          {/* En-tête avec bouton reset si l'ordre a été modifié */}
+          {(JSON.stringify(dashKpiOrder) !== JSON.stringify(DEFAULT_DASHBOARD_KPI_ORDER)
+           || JSON.stringify(dashGraphOrder) !== JSON.stringify(DEFAULT_DASHBOARD_GRAPH_ORDER)) && (
+            <div style={{display:"flex",justifyContent:"flex-end"}}>
+              <button
+                onClick={() => { setDashKpiOrder(DEFAULT_DASHBOARD_KPI_ORDER); setDashGraphOrder(DEFAULT_DASHBOARD_GRAPH_ORDER); }}
+                style={{fontSize:10,padding:"3px 10px",borderRadius:6,border:"0.5px solid #e5e7eb",background:"#f9fafb",color:"#6b7280",cursor:"pointer"}}
+                title="Remettre l'ordre d'origine"
+              >
+                ↻ Ordre par défaut
+              </button>
+            </div>
+          )}
+
+          {/* KPIs — 4 cartes draggables */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
-            {[
-              { label: "Total analyses IA", value: ticketsAnalyses.length, color: "#7c3aed", sub: `sur ${tickets.length} tickets` },
-              { label: "Taux acceptation",  value: `${tauxAcceptation}%`,  color: "#16a34a", sub: `${acceptees} suggestions` },
-              { label: "Taux rejet",        value: totalSug > 0 ? `${Math.round((rejetees/totalSug)*100)}%` : "—", color: "#dc2626", sub: `${rejetees} rejetées` },
-              { label: "Temps moyen",       value: tempsMoyen ? `${tempsMoyen}s` : "—", color: "#2563eb", sub: "par analyse" },
-            ].map((k, i) => (
-              <div key={i} style={{ background: "var(--color-background-secondary)", borderRadius: 8, padding: "14px 16px", borderTop: `3px solid ${k.color}` }}>
-                <p style={{ fontSize: 11, color: "var(--color-text-secondary)", margin: "0 0 6px" }}>{k.label}</p>
-                <p style={{ fontSize: 24, fontWeight: 500, margin: 0, color: k.color }}>{k.value}</p>
-                <p style={{ fontSize: 11, color: "var(--color-text-tertiary)", margin: "4px 0 0" }}>{k.sub}</p>
-              </div>
-            ))}
+            {(() => {
+              const kpiDefs = [
+                { label: "Total analyses IA", value: ticketsAnalyses.length, color: "#7c3aed", sub: `sur ${tickets.length} tickets` },
+                { label: "Taux acceptation",  value: `${tauxAcceptation}%`,  color: "#16a34a", sub: `${acceptees} suggestions` },
+                { label: "Taux rejet",        value: totalSug > 0 ? `${Math.round((rejetees/totalSug)*100)}%` : "—", color: "#dc2626", sub: `${rejetees} rejetées` },
+                { label: "Temps moyen",       value: tempsMoyen ? `${tempsMoyen}s` : "—", color: "#2563eb", sub: "par analyse" },
+              ];
+              return dashKpiOrder.map((ri, op) => {
+                const k = kpiDefs[ri];
+                if (!k) return null;
+                const isOver = dragOverDashKpi === op;
+                return (
+                  <div
+                    key={ri}
+                    draggable={true}
+                    onDragStart={dkpiDS(op)}
+                    onDragOver={dkpiDO(op)}
+                    onDrop={dkpiDP(op)}
+                    onDragEnd={dkpiDE}
+                    style={{
+                      background: "var(--color-background-secondary)",
+                      borderRadius: 8,
+                      padding: "14px 16px",
+                      borderTop: `3px solid ${k.color}`,
+                      cursor: "grab",
+                      position: "relative",
+                      outline: isOver ? `2px dashed ${k.color}` : "none",
+                      boxShadow: isOver
+                        ? `0 0 0 3px ${k.color}33, 0 4px 16px rgba(0,0,0,.08)`
+                        : "none",
+                      transition: "box-shadow .15s, outline .1s"
+                    }}
+                  >
+                    <div style={{ position: "absolute", top: 6, left: 8, fontSize: 13, color: "#cbd5e1", userSelect: "none", pointerEvents: "none" }}>⠿</div>
+                    <p style={{ fontSize: 11, color: "var(--color-text-secondary)", margin: "0 0 6px", paddingLeft: 14 }}>{k.label}</p>
+                    <p style={{ fontSize: 24, fontWeight: 500, margin: 0, color: k.color }}>{k.value}</p>
+                    <p style={{ fontSize: 11, color: "var(--color-text-tertiary)", margin: "4px 0 0" }}>{k.sub}</p>
+                  </div>
+                );
+              });
+            })()}
           </div>
 
-          {/* Graphe évolution + Performance par type */}
+          {/* Répartition + Performance par type — 2 graphs draggables */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-
-            {/* Mini stats suggestions */}
-            <div className="ad-card" style={{ margin: 0 }}>
-              <h2 className="ad-card-title">Répartition des suggestions</h2>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 12 }}>
-                {[
-                  { label: "En attente", value: enAttente, color: "#d97706", bg: "#fefce8" },
-                  { label: "Acceptées",  value: acceptees, color: "#16a34a", bg: "#f0fdf4" },
-                  { label: "Rejetées",   value: rejetees,  color: "#dc2626", bg: "#fef2f2" },
-                  { label: "Ignorées",   value: ignorees,  color: "#6b7280", bg: "#f9fafb" },
-                ].map((s, i) => (
-                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <span style={{ fontSize: 12, color: "var(--color-text-secondary)", minWidth: 80 }}>{s.label}</span>
-                    <div style={{ flex: 1, height: 8, background: "var(--color-background-secondary)", borderRadius: 4, overflow: "hidden" }}>
-                      <div style={{ width: totalSug > 0 ? `${Math.round((s.value/totalSug)*100)}%` : "0%", height: "100%", background: s.color, borderRadius: 4, transition: "width .3s" }} />
+            {(() => {
+              const graphDefs = [
+                // Graph 0 : Répartition des suggestions
+                (isOver) => (
+                  <div className="ad-card" style={{ margin: 0, position: "relative",
+                    outline: isOver ? "2px dashed #d97706" : "none",
+                    boxShadow: isOver ? "0 0 0 3px #d9770633, 0 4px 16px rgba(0,0,0,.08)" : undefined,
+                    transition: "box-shadow .15s, outline .1s"
+                  }}>
+                    <div style={{ position: "absolute", top: 8, left: 10, fontSize: 13, color: "#cbd5e1", userSelect: "none", pointerEvents: "none" }}>⠿</div>
+                    <h2 className="ad-card-title" style={{paddingLeft: 18}}>Répartition des suggestions</h2>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 12 }}>
+                      {[
+                        { label: "En attente", value: enAttente, color: "#d97706", bg: "#fefce8" },
+                        { label: "Acceptées",  value: acceptees, color: "#16a34a", bg: "#f0fdf4" },
+                        { label: "Rejetées",   value: rejetees,  color: "#dc2626", bg: "#fef2f2" },
+                        { label: "Ignorées",   value: ignorees,  color: "#6b7280", bg: "#f9fafb" },
+                      ].map((s, i) => (
+                        <div key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <span style={{ fontSize: 12, color: "var(--color-text-secondary)", minWidth: 80 }}>{s.label}</span>
+                          <div style={{ flex: 1, height: 8, background: "var(--color-background-secondary)", borderRadius: 4, overflow: "hidden" }}>
+                            <div style={{ width: totalSug > 0 ? `${Math.round((s.value/totalSug)*100)}%` : "0%", height: "100%", background: s.color, borderRadius: 4, transition: "width .3s" }} />
+                          </div>
+                          <span style={{ fontSize: 12, fontWeight: 500, color: s.color, minWidth: 28, textAlign: "right" }}>{s.value}</span>
+                        </div>
+                      ))}
                     </div>
-                    <span style={{ fontSize: 12, fontWeight: 500, color: s.color, minWidth: 28, textAlign: "right" }}>{s.value}</span>
                   </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Performance par type */}
-            <div className="ad-card" style={{ margin: 0 }}>
-              <h2 className="ad-card-title">Acceptation par type</h2>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 12 }}>
-                {perfParType.map((p, i) => (
-                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <span style={{ fontSize: 12, color: "var(--color-text-secondary)", minWidth: 90 }}>{p.label}</span>
-                    <div style={{ flex: 1, height: 8, background: "var(--color-background-secondary)", borderRadius: 4, overflow: "hidden" }}>
-                      <div style={{ width: `${p.taux}%`, height: "100%", background: Object.values(SUG_COLORS)[i]?.color || "#2563eb", borderRadius: 4, transition: "width .3s" }} />
+                ),
+                // Graph 1 : Acceptation par type
+                (isOver) => (
+                  <div className="ad-card" style={{ margin: 0, position: "relative",
+                    outline: isOver ? "2px dashed #2563eb" : "none",
+                    boxShadow: isOver ? "0 0 0 3px #2563eb33, 0 4px 16px rgba(0,0,0,.08)" : undefined,
+                    transition: "box-shadow .15s, outline .1s"
+                  }}>
+                    <div style={{ position: "absolute", top: 8, left: 10, fontSize: 13, color: "#cbd5e1", userSelect: "none", pointerEvents: "none" }}>⠿</div>
+                    <h2 className="ad-card-title" style={{paddingLeft: 18}}>Acceptation par type</h2>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 12 }}>
+                      {perfParType.map((p, i) => (
+                        <div key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <span style={{ fontSize: 12, color: "var(--color-text-secondary)", minWidth: 90 }}>{p.label}</span>
+                          <div style={{ flex: 1, height: 8, background: "var(--color-background-secondary)", borderRadius: 4, overflow: "hidden" }}>
+                            <div style={{ width: `${p.taux}%`, height: "100%", background: Object.values(SUG_COLORS)[i]?.color || "#2563eb", borderRadius: 4, transition: "width .3s" }} />
+                          </div>
+                          <span style={{ fontSize: 12, fontWeight: 500, color: "var(--color-text-primary)", minWidth: 32, textAlign: "right" }}>{p.taux}%</span>
+                          <span style={{ fontSize: 10, color: "var(--color-text-tertiary)", minWidth: 40 }}>{p.acc}/{p.total}</span>
+                        </div>
+                      ))}
                     </div>
-                    <span style={{ fontSize: 12, fontWeight: 500, color: "var(--color-text-primary)", minWidth: 32, textAlign: "right" }}>{p.taux}%</span>
-                    <span style={{ fontSize: 10, color: "var(--color-text-tertiary)", minWidth: 40 }}>{p.acc}/{p.total}</span>
                   </div>
-                ))}
-              </div>
-            </div>
+                ),
+              ];
+
+              return dashGraphOrder.map((ri, op) => {
+                const renderGraph = graphDefs[ri];
+                if (!renderGraph) return null;
+                const isOver = dragOverDashGraph === op;
+                return (
+                  <div
+                    key={ri}
+                    draggable={true}
+                    onDragStart={dgDS(op)}
+                    onDragOver={dgDO(op)}
+                    onDrop={dgDP(op)}
+                    onDragEnd={dgDE}
+                    style={{ cursor: "grab" }}
+                  >
+                    {renderGraph(isOver)}
+                  </div>
+                );
+              });
+            })()}
           </div>
 
-          {/* Tickets non analysés */}
+          {/* Tickets non analysés — AFFICHAGE SEULEMENT, PAS D'ACTION */}
           {ticketsNonAnalyses.length > 0 && (
             <div className="ad-card" style={{ margin: 0 }}>
               <div className="ad-card-header">
                 <div>
-                  <h2 className="ad-card-title">⚠️ Tickets non analysés</h2>
-                  <p className="ad-card-subtitle" style={{ marginBottom: 0 }}>Ces tickets n'ont pas encore été traités par l'IA</p>
+                  <h2 className="ad-card-title">Tickets non analysés</h2>
+                  <p className="ad-card-subtitle" style={{ marginBottom: 0 }}>
+                    Ces tickets n'ont pas encore été traités par l'IA — l'analyse est lancée par les chefs d'équipe
+                  </p>
                 </div>
                 <span style={{ fontSize: 11, padding: "3px 10px", borderRadius: 20, background: "#fef2f2", color: "#b91c1c", border: "1px solid #fecaca", fontWeight: 500 }}>
                   {ticketsNonAnalyses.length} tickets
                 </span>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
-                {ticketsNonAnalyses.slice(0, 8).map(t => (
+                {ticketsNonAnalyses.slice(0, tnaVisibles).map(t => (
                   <div key={t._id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", background: "var(--color-background-secondary)", borderRadius: 8, border: "0.5px solid var(--color-border-tertiary)" }}>
-                    <div>
-                      <p style={{ fontSize: 13, fontWeight: 500, color: "var(--color-text-primary)", margin: 0 }}>{t.titre}</p>
+                    <div style={{flex:1, minWidth:0}}>
+                      <p style={{ fontSize: 13, fontWeight: 500, color: "var(--color-text-primary)", margin: 0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{t.titre}</p>
                       <p style={{ fontSize: 11, color: "var(--color-text-secondary)", margin: "2px 0 0" }}>{t.reporter?.prenom} {t.reporter?.nom} · {fmtDate(t.createdAt)}</p>
                     </div>
-                    <button
-                      disabled={iaLoadingId === t._id}
-                      onClick={() => lancerAnalyse(t._id)}
-                      style={{
-                        fontSize: 11, padding: "6px 14px", borderRadius: 8,
-                        background: iaLoadingId === t._id ? "#9ca3af" : "#7c3aed",
-                        color: "#fff", border: "none", cursor: iaLoadingId === t._id ? "not-allowed" : "pointer",
-                        fontWeight: 500, flexShrink: 0
-                      }}>
-                      {iaLoadingId === t._id ? "⏳..." : "🤖 Analyser"}
-                    </button>
+                    <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 6, background: "#fefce8", color: "#a16207", border: "1px solid #fde68a", fontWeight: 500, flexShrink: 0, marginLeft: 12 }}>
+                      En attente
+                    </span>
                   </div>
                 ))}
+
+                {/* BOUTON : voir plus de tickets */}
+                {ticketsNonAnalyses.length > tnaVisibles && (
+                  <button
+                    onClick={() => setTnaVisibles(v => v + 10)}
+                    style={{
+                      marginTop: 4, padding: "8px 14px",
+                      border: "0.5px solid #fde68a", borderRadius: 8,
+                      background: "#fefce8", color: "#a16207",
+                      fontSize: 12, fontWeight: 600, cursor: "pointer",
+                      display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                      transition: "all .15s"
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = "#fef3c7"; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = "#fefce8"; }}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+                      <path d="M3.204 5h9.592L8 10.481 3.204 5zm-.753.659 4.796 5.48a1 1 0 0 0 1.506 0l4.796-5.48c.566-.647.106-1.659-.753-1.659H3.204a1 1 0 0 0-.753 1.659z"/>
+                    </svg>
+                    Voir {Math.min(10, ticketsNonAnalyses.length - tnaVisibles)} tickets de plus
+                    <span style={{ fontSize: 10, opacity: 0.7, fontWeight: 400 }}>
+                      ({tnaVisibles} / {ticketsNonAnalyses.length})
+                    </span>
+                  </button>
+                )}
+
+                {/* BOUTON : réduire si on a dépassé les 8 initiaux */}
+                {tnaVisibles > 8 && ticketsNonAnalyses.length > 8 && (
+                  <button
+                    onClick={() => setTnaVisibles(8)}
+                    style={{
+                      marginTop: ticketsNonAnalyses.length > tnaVisibles ? 0 : 4,
+                      padding: "6px 14px",
+                      border: "0.5px solid var(--color-border-tertiary)",
+                      borderRadius: 8, background: "var(--color-background-secondary)",
+                      color: "var(--color-text-secondary)",
+                      fontSize: 11, fontWeight: 500, cursor: "pointer",
+                      display: "flex", alignItems: "center", justifyContent: "center", gap: 6
+                    }}
+                  >
+                    Réduire la liste
+                  </button>
+                )}
               </div>
             </div>
           )}
         </div>
       )}
 
-      {/* ══ SECTION B — GESTION SUGGESTIONS ══ */}
+      {/* ══ SECTION B — SUGGESTIONS (lecture seule) ══ */}
       {section === "suggestions" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
 
-          {/* Filtres */}
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
             <span style={{ fontSize: 12, color: "var(--color-text-secondary)", fontWeight: 500 }}>Statut :</span>
             {[
@@ -430,7 +621,7 @@ function IaAdminPage({ token }) {
               { value: "rejetee",    label: `Rejetées (${rejetees})` },
               { value: "ignorees",   label: `Ignorées (${ignorees})` },
             ].map(f => (
-              <button key={f.value} onClick={() => setFilterSug(f.value)} style={{
+              <button key={f.value} onClick={() => { setFilterSug(f.value); setSugsVisibles(30); }} style={{
                 fontSize: 11, padding: "4px 12px", borderRadius: 20, cursor: "pointer",
                 border: "0.5px solid", transition: "all .15s",
                 borderColor: filterSug === f.value ? "#2563eb" : "var(--color-border-tertiary)",
@@ -440,7 +631,7 @@ function IaAdminPage({ token }) {
             ))}
             <span style={{ fontSize: 12, color: "var(--color-text-secondary)", fontWeight: 500, marginLeft: 8 }}>Type :</span>
             {[{ value: "tous", label: "Tous" }, ...Object.entries(SUG_TYPES).map(([k, v]) => ({ value: k, label: v }))].map(f => (
-              <button key={f.value} onClick={() => setFilterType(f.value)} style={{
+              <button key={f.value} onClick={() => { setFilterType(f.value); setSugsVisibles(30); }} style={{
                 fontSize: 11, padding: "4px 12px", borderRadius: 20, cursor: "pointer",
                 border: "0.5px solid", transition: "all .15s",
                 borderColor: filterType === f.value ? "#7c3aed" : "var(--color-border-tertiary)",
@@ -450,23 +641,31 @@ function IaAdminPage({ token }) {
             ))}
           </div>
 
-          {/* Table suggestions */}
           <div className="ad-card" style={{ margin: 0 }}>
-            <h2 className="ad-card-title">{sugsFiltrees.length} suggestion{sugsFiltrees.length !== 1 ? "s" : ""}</h2>
-            {sugsFiltrees.length === 0 ? (
+            <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:8}}>
+              <h2 className="ad-card-title" style={{margin:0}}>
+                {sugsDedupliquees.length} suggestion{sugsDedupliquees.length !== 1 ? "s" : ""}
+              </h2>
+              {sugsFiltrees.length > sugsDedupliquees.length && (
+                <span style={{fontSize:11, color:"#9ca3af", fontStyle:"italic"}}>
+                  {sugsFiltrees.length - sugsDedupliquees.length} doublon{sugsFiltrees.length - sugsDedupliquees.length > 1 ? "s" : ""} masqué{sugsFiltrees.length - sugsDedupliquees.length > 1 ? "s" : ""} (meilleur score conservé par ticket)
+                </span>
+              )}
+            </div>
+            {sugsDedupliquees.length === 0 ? (
               <p style={{ fontSize: 13, color: "var(--color-text-tertiary)", textAlign: "center", padding: "24px 0" }}>Aucune suggestion pour ces filtres.</p>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
-                {sugsFiltrees.slice(0, 30).map((s, i) => {
+                {sugsDedupliquees.slice(0, sugsVisibles).map((s, i) => {
                   const cfg = SUG_COLORS[s.type] || { bg: "#f9fafb", color: "#374151", border: "#e5e7eb" };
                   const statutStyle =
                     s.statut === "acceptee" ? { bg: "#f0fdf4", color: "#15803d", label: "✅ Acceptée" }
                     : s.statut === "rejetee" ? { bg: "#fef2f2", color: "#b91c1c", label: "❌ Rejetée" }
                     : { bg: "#fefce8", color: "#a16207", label: "⏳ En attente" };
                   return (
-                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", border: "0.5px solid var(--color-border-tertiary)", borderRadius: 8, background: "var(--color-background-primary)" }}>
-                      <div style={{ flex: 2 }}>
-                        <p style={{ fontSize: 12, fontWeight: 500, color: "var(--color-text-primary)", margin: 0 }}>{s.ticket?.titre || "—"}</p>
+                    <div key={s._id || i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", border: "0.5px solid var(--color-border-tertiary)", borderRadius: 8, background: "var(--color-background-primary)" }}>
+                      <div style={{ flex: 2, minWidth: 0 }}>
+                        <p style={{ fontSize: 12, fontWeight: 500, color: "var(--color-text-primary)", margin: 0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{s.ticket?.titre || "—"}</p>
                         <p style={{ fontSize: 11, color: "var(--color-text-secondary)", margin: "2px 0 0" }}>
                           {s.ticket?.reporter?.prenom} {s.ticket?.reporter?.nom}
                           {s.ticket?.assignee && ` · ${s.ticket.assignee.prenom} ${s.ticket.assignee.nom}`}
@@ -484,10 +683,48 @@ function IaAdminPage({ token }) {
                     </div>
                   );
                 })}
-                {sugsFiltrees.length > 30 && (
-                  <p style={{ fontSize: 12, color: "var(--color-text-tertiary)", textAlign: "center", padding: "8px 0" }}>
-                    + {sugsFiltrees.length - 30} autres suggestions
-                  </p>
+
+                {/* BOUTON : voir plus de suggestions */}
+                {sugsDedupliquees.length > sugsVisibles && (
+                  <button
+                    onClick={() => setSugsVisibles(v => v + 10)}
+                    style={{
+                      marginTop: 4, padding: "8px 14px",
+                      border: "0.5px solid #bfdbfe", borderRadius: 8,
+                      background: "#eff6ff", color: "#1d4ed8",
+                      fontSize: 12, fontWeight: 600, cursor: "pointer",
+                      display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                      transition: "all .15s"
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = "#dbeafe"; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = "#eff6ff"; }}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+                      <path d="M3.204 5h9.592L8 10.481 3.204 5zm-.753.659 4.796 5.48a1 1 0 0 0 1.506 0l4.796-5.48c.566-.647.106-1.659-.753-1.659H3.204a1 1 0 0 0-.753 1.659z"/>
+                    </svg>
+                    Voir {Math.min(10, sugsDedupliquees.length - sugsVisibles)} suggestions de plus
+                    <span style={{ fontSize: 10, opacity: 0.7, fontWeight: 400 }}>
+                      ({sugsVisibles} / {sugsDedupliquees.length})
+                    </span>
+                  </button>
+                )}
+
+                {/* BOUTON : réduire */}
+                {sugsVisibles > 30 && sugsDedupliquees.length > 30 && (
+                  <button
+                    onClick={() => setSugsVisibles(30)}
+                    style={{
+                      marginTop: sugsDedupliquees.length > sugsVisibles ? 0 : 4,
+                      padding: "6px 14px",
+                      border: "0.5px solid var(--color-border-tertiary)",
+                      borderRadius: 8, background: "var(--color-background-secondary)",
+                      color: "var(--color-text-secondary)",
+                      fontSize: 11, fontWeight: 500, cursor: "pointer",
+                      display: "flex", alignItems: "center", justifyContent: "center", gap: 6
+                    }}
+                  >
+                    Réduire la liste
+                  </button>
                 )}
               </div>
             )}
@@ -495,102 +732,595 @@ function IaAdminPage({ token }) {
         </div>
       )}
 
-      {/* ══ SECTION C — MONITORING ══ */}
-      {section === "monitoring" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      {/* ══ SECTION C — MONITORING (lecture seule, 100% dynamique) ══ */}
+      {section === "monitoring" && (() => {
 
-          {/* Santé système */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
-            {[
-              { label: "Tickets analysés",     value: ticketsAnalyses.length,    color: "#16a34a" },
-              { label: "Non analysés",          value: ticketsNonAnalyses.length, color: ticketsNonAnalyses.length > 0 ? "#d97706" : "#16a34a" },
-              { label: "Taux de succès",        value: tickets.length > 0 ? `${Math.round((ticketsAnalyses.length / tickets.length) * 100)}%` : "—", color: "#2563eb" },
-              { label: "Suggestions ignorées",  value: ignorees, color: ignorees > 0 ? "#6b7280" : "#16a34a" },
-            ].map((k, i) => (
-              <div key={i} style={{ background: "var(--color-background-secondary)", borderRadius: 8, padding: "14px 16px" }}>
-                <p style={{ fontSize: 11, color: "var(--color-text-secondary)", margin: "0 0 6px" }}>{k.label}</p>
-                <p style={{ fontSize: 24, fontWeight: 500, margin: 0, color: k.color }}>{k.value}</p>
-              </div>
-            ))}
-          </div>
+        // ═══ CALCULS DYNAMIQUES ═══
+        const now = new Date();
+        const ms24h = 24 * 60 * 60 * 1000;
+        const ms7j  = 7 * ms24h;
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        // Logs des dernières 24h
+        const logs24h     = logs.filter(l => l.createdAt && (now - new Date(l.createdAt)) <= ms24h);
+        const echecs24h   = logs24h.filter(l => !(l.statut === "succes" || l.succes === true));
+        const succes24h   = logs24h.length - echecs24h.length;
 
-            {/* Logs récents */}
-            <div className="ad-card" style={{ margin: 0 }}>
-              <h2 className="ad-card-title">Logs d'analyses récents</h2>
-              {logs.length === 0 ? (
-                <p style={{ fontSize: 13, color: "var(--color-text-tertiary)", textAlign: "center", padding: "24px 0" }}>
-                  Aucun log disponible.
-                </p>
-              ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
-                  {logs.slice(0, 10).map((l, i) => {
-                    const isOk = l.statut === "succes" || l.succes === true;
+        // Analyses aujourd'hui (depuis minuit local)
+        const minuit = new Date(now); minuit.setHours(0, 0, 0, 0);
+        const logsToday = logs.filter(l => l.createdAt && new Date(l.createdAt) >= minuit);
+
+        // Analyses hier (entre minuit-24h et minuit)
+        const hierMinuit = new Date(minuit.getTime() - ms24h);
+        const logsYesterday = logs.filter(l => {
+          if (!l.createdAt) return false;
+          const d = new Date(l.createdAt);
+          return d >= hierMinuit && d < minuit;
+        });
+        const deltaToday = logsToday.length - logsYesterday.length;
+
+        // Graphique 7 jours : regrouper les logs par jour
+        const joursLabels = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
+        const days7 = Array.from({ length: 7 }, (_, i) => {
+          const d = new Date(minuit);
+          d.setDate(d.getDate() - (6 - i));
+          const dEnd = new Date(d); dEnd.setHours(23, 59, 59, 999);
+          const logsDay = logs.filter(l => {
+            if (!l.createdAt) return false;
+            const ld = new Date(l.createdAt);
+            return ld >= d && ld <= dEnd;
+          });
+          const echecs = logsDay.filter(l => !(l.statut === "succes" || l.succes === true)).length;
+          return {
+            label: joursLabels[d.getDay()] + " " + d.getDate(),
+            total: logsDay.length,
+            succes: logsDay.length - echecs,
+            echecs,
+            isToday: i === 6,
+          };
+        });
+        const maxDay = Math.max(...days7.map(d => d.total), 1);
+
+        // Dédoublonnage des logs par ticket (garder le plus récent)
+        const logsByTicket = {};
+        logs.forEach(l => {
+          const id = l.ticket?._id;
+          if (!id) return;
+          if (!logsByTicket[id] || new Date(l.createdAt) > new Date(logsByTicket[id].dernier.createdAt)) {
+            logsByTicket[id] = { dernier: l, count: 0 };
+          }
+        });
+        // Compter les occurrences par ticket
+        logs.forEach(l => {
+          const id = l.ticket?._id;
+          if (id && logsByTicket[id]) logsByTicket[id].count++;
+        });
+        const logsDedupliques = Object.values(logsByTicket).sort(
+          (a, b) => new Date(b.dernier.createdAt) - new Date(a.dernier.createdAt)
+        );
+
+        // Filtrer logs selon filterLogs
+        const logsAffiches = logsDedupliques.filter(({ dernier }) => {
+          const isOk = dernier.statut === "succes" || dernier.succes === true;
+          if (filterLogs === "succes") return isOk;
+          if (filterLogs === "echecs") return !isOk;
+          return true;
+        });
+
+        // Tickets analysés dédoublonnés (dernière analyse)
+        const ticketsAnalysesRecents = [...ticketsAnalyses].sort(
+          (a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt)
+        );
+
+        // Ticket le plus ré-analysé
+        const ticketLePlusReanalyse = logsDedupliques
+          .filter(x => x.count >= 3)
+          .sort((a, b) => b.count - a.count)[0];
+
+        // Helper temps relatif
+        const tempsRelatif = (date) => {
+          if (!date) return "—";
+          const diff = (now - new Date(date)) / 1000;
+          if (diff < 60)      return "à l'instant";
+          if (diff < 3600)    return `il y a ${Math.floor(diff / 60)} min`;
+          if (diff < 86400)   return `il y a ${Math.floor(diff / 3600)}h`;
+          if (diff < 604800)  return `il y a ${Math.floor(diff / 86400)}j`;
+          return fmtDate(date);
+        };
+
+        // Taux de succès global (sur tous les logs)
+        const succesTotal = logs.filter(l => l.statut === "succes" || l.succes === true).length;
+        const tauxFiabilite = logs.length > 0 ? Math.round((succesTotal / logs.length) * 100) : 100;
+
+        return (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+
+            {/* ═══ LIGNE 1 : 8 KPI DRAGGABLES (6 globaux + 2 sur 24h) ═══ */}
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
+              <p style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: ".06em", margin: 0 }}>
+                Indicateurs clés — glisser-déposer pour réorganiser
+              </p>
+              {JSON.stringify(kpiOrder) !== JSON.stringify(DEFAULT_MONITORING_ORDER) && (
+                <button
+                  onClick={() => setKpiOrder(DEFAULT_MONITORING_ORDER)}
+                  style={{fontSize:10,padding:"3px 10px",borderRadius:6,border:"0.5px solid #e5e7eb",background:"#f9fafb",color:"#6b7280",cursor:"pointer"}}
+                  title="Remettre l'ordre d'origine"
+                >
+                  ↻ Ordre par défaut
+                </button>
+              )}
+            </div>
+
+            {(() => {
+              // ═══ Calculs globaux (depuis le début) ═══
+              const totalAnalyses = logs.length;
+              const echecsTotal   = logs.filter(l => !(l.statut === "succes" || l.succes === true)).length;
+              const tauxEchec     = totalAnalyses > 0 ? ((echecsTotal / totalAnalyses) * 100).toFixed(1) : "0";
+              const couvertureIA  = tickets.length > 0 ? Math.round((ticketsAnalyses.length / tickets.length) * 100) : 0;
+              const moyenneParTicket = ticketsAnalyses.length > 0 ? (totalAnalyses / ticketsAnalyses.length).toFixed(1) : "—";
+
+              // ═══ Calculs 24h ═══
+              const tauxEchec24h = logs24h.length > 0 ? ((echecs24h.length / logs24h.length) * 100).toFixed(1) : "0";
+
+              // ═══ 8 définitions de KPI (ordre par défaut) ═══
+              const kpiDefs = [
+                {
+                  label: "Tickets traités par l'IA",
+                  value: ticketsAnalyses.length,
+                  color: "#16a34a",
+                  sub: `sur ${tickets.length} tickets existants`,
+                  scope: "global",
+                },
+                {
+                  label: "Tickets en attente",
+                  value: ticketsNonAnalyses.length,
+                  color: ticketsNonAnalyses.length > 0 ? "#d97706" : "#16a34a",
+                  sub: "pas encore analysés",
+                  scope: "global",
+                },
+                {
+                  label: "Couverture IA",
+                  value: `${couvertureIA}%`,
+                  color: "#2563eb",
+                  bar: couvertureIA,
+                  sub: `${ticketsAnalyses.length}/${tickets.length} tickets`,
+                  scope: "global",
+                },
+                {
+                  label: "Total analyses effectuées",
+                  value: totalAnalyses,
+                  color: "#7c3aed",
+                  sub: moyenneParTicket !== "—" ? `soit ${moyenneParTicket} analyses/ticket` : "aucune analyse",
+                  scope: "global",
+                },
+                {
+                  label: "Échecs (total)",
+                  value: echecsTotal,
+                  color: echecsTotal === 0 ? "#16a34a" : "#dc2626",
+                  sub: totalAnalyses > 0 ? `sur ${totalAnalyses} analyses (${tauxEchec}%)` : "aucun échec",
+                  scope: "global",
+                },
+                {
+                  label: "Temps moyen",
+                  value: tempsMoyen ? `${tempsMoyen}s` : "—",
+                  color: "#0891b2",
+                  sub: "par analyse",
+                  scope: "global",
+                },
+                {
+                  label: "Analyses 24h",
+                  value: logs24h.length,
+                  color: "#a855f7",
+                  sub: logs24h.length > 0 ? `dont ${succes24h} succès` : "aucune activité",
+                  scope: "24h",
+                },
+                {
+                  label: "Échecs 24h",
+                  value: echecs24h.length,
+                  color: echecs24h.length === 0 ? "#16a34a" : "#f87171",
+                  sub: logs24h.length > 0 ? `sur ${logs24h.length} analyses (${tauxEchec24h}%)` : "aucune erreur",
+                  scope: "24h",
+                },
+              ];
+
+              return (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
+                  {kpiOrder.map((ri, op) => {
+                    const k = kpiDefs[ri];
+                    if (!k) return null;
+                    const isOver = dragOverKpi === op;
                     return (
-                      <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "8px 10px", border: "0.5px solid var(--color-border-tertiary)", borderRadius: 8 }}>
-                        <div style={{ width: 8, height: 8, borderRadius: "50%", background: isOk ? "#16a34a" : "#dc2626", border: `1.5px solid ${isOk ? "#bbf7d0" : "#fecaca"}`, flexShrink: 0, marginTop: 3 }} />
-                        <div style={{ flex: 1 }}>
-                          <p style={{ fontSize: 12, fontWeight: 500, color: "var(--color-text-primary)", margin: 0 }}>
-                            {l.ticket?.titre || "Ticket inconnu"}
-                          </p>
-                          <p style={{ fontSize: 11, color: "var(--color-text-secondary)", margin: "2px 0 0" }}>
-                            {isOk ? "Succès" : "Échec"} · {l.dureeMs ? `${Math.round(l.dureeMs / 1000)}s` : ""} · {fmtDate(l.createdAt)}
-                          </p>
-                          {l.erreur && <p style={{ fontSize: 11, color: "#dc2626", margin: "2px 0 0", fontStyle: "italic" }}>{l.erreur}</p>}
-                        </div>
+                      <div
+                        key={ri}
+                        draggable={true}
+                        onDragStart={kpiDS(op)}
+                        onDragOver={kpiDO(op)}
+                        onDrop={kpiDP(op)}
+                        onDragEnd={kpiDE}
+                        style={{
+                          background: "var(--color-background-primary)",
+                          border: `0.5px solid ${isOver ? k.color : "var(--color-border-tertiary)"}`,
+                          borderRadius: 8,
+                          padding: "14px 16px",
+                          borderTop: `3px solid ${k.color}`,
+                          cursor: "grab",
+                          position: "relative",
+                          outline: isOver ? `2px dashed ${k.color}` : "none",
+                          boxShadow: isOver
+                            ? `0 0 0 3px ${k.color}33, 0 4px 16px rgba(0,0,0,.08)`
+                            : "0 1px 4px rgba(0,0,0,.04)",
+                          transition: "box-shadow .15s, outline .1s"
+                        }}
+                      >
+                        {/* Poignée ⠿ en haut à gauche */}
+                        <div style={{
+                          position: "absolute",
+                          top: 6,
+                          left: 8,
+                          fontSize: 13,
+                          color: "#cbd5e1",
+                          userSelect: "none",
+                          pointerEvents: "none"
+                        }}>⠿</div>
+
+                        {/* Badge 24h pour différencier */}
+                        {k.scope === "24h" && (
+                          <span style={{
+                            position: "absolute",
+                            top: 8,
+                            right: 8,
+                            fontSize: 9,
+                            background: "#fef3c7",
+                            color: "#a16207",
+                            padding: "1px 6px",
+                            borderRadius: 4,
+                            fontWeight: 600,
+                            letterSpacing: ".03em"
+                          }}>24h</span>
+                        )}
+
+                        <p style={{ fontSize: 11, color: "var(--color-text-secondary)", margin: "0 0 6px", fontWeight: 500, paddingLeft: 14, paddingRight: k.scope === "24h" ? 32 : 0 }}>
+                          {k.label}
+                        </p>
+                        <p style={{ fontSize: 22, fontWeight: 600, margin: 0, color: k.color, lineHeight: 1 }}>{k.value}</p>
+                        {k.sub && <p style={{ fontSize: 10, color: "#9ca3af", margin: "4px 0 0" }}>{k.sub}</p>}
+                        {k.bar !== undefined && (
+                          <div style={{ height: 4, background: "#f3f4f6", borderRadius: 2, marginTop: 8, overflow: "hidden" }}>
+                            <div style={{ height: "100%", width: `${k.bar}%`, background: k.color, borderRadius: 2, transition: "width .3s" }} />
+                          </div>
+                        )}
                       </div>
                     );
                   })}
                 </div>
+              );
+            })()}
+
+            {/* Note explicative pour l'admin */}
+            <div style={{ padding: "8px 12px", background: "#f9fafb", border: "0.5px solid #e5e7eb", borderRadius: 6, fontSize: 11, color: "#6b7280", lineHeight: 1.5 }}>
+              <strong style={{color:"#374151"}}>💡 À savoir :</strong> Les cartes avec le badge <span style={{fontSize:9,background:"#fef3c7",color:"#a16207",padding:"1px 5px",borderRadius:4,fontWeight:600}}>24h</span> concernent les dernières 24 heures. Les autres sont des totaux depuis le début.
+            </div>
+
+            {/* ═══ LIGNE 2 : GRAPHIQUE 7 JOURS ═══ */}
+            <div className="ad-card" style={{ margin: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                <h2 className="ad-card-title" style={{ margin: 0 }}>Activité IA — 7 derniers jours</h2>
+                <span style={{ fontSize: 11, color: "#9ca3af", fontWeight: 400 }}>pics d'utilisation visibles</span>
+              </div>
+
+              {logs.length === 0 ? (
+                <p style={{ fontSize: 13, color: "#9ca3af", textAlign: "center", padding: "40px 0" }}>
+                  Aucune donnée d'activité disponible.
+                </p>
+              ) : (
+                <>
+                  <div style={{ display: "flex", alignItems: "flex-end", height: 120, gap: 10, padding: "16px 4px 6px", borderBottom: "1px solid #f3f4f6" }}>
+                    {days7.map((d, i) => {
+                      const pctSucces = d.total > 0 ? (d.succes / maxDay) * 100 : 0;
+                      const pctEchecs = d.total > 0 ? (d.echecs / maxDay) * 100 : 0;
+                      const pctTotal  = pctSucces + pctEchecs;
+                      return (
+                        <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "flex-end", height: "100%", position: "relative" }}>
+                          {d.total > 0 && (
+                            <span style={{ position: "absolute", top: -18, left: "50%", transform: "translateX(-50%)", fontSize: 10, fontWeight: 600, color: d.isToday ? "#7c3aed" : "#374151" }}>
+                              {d.total}
+                            </span>
+                          )}
+                          <div style={{ height: `${Math.max(pctTotal, d.total > 0 ? 6 : 0)}%`, borderRadius: "4px 4px 0 0", overflow: "hidden", display: "flex", flexDirection: "column", minHeight: d.total > 0 ? 8 : 0 }}>
+                            {d.echecs > 0 && (
+                              <div style={{ height: `${(pctEchecs / pctTotal) * 100}%`, background: "linear-gradient(180deg,#dc2626,#f87171)" }} />
+                            )}
+                            {d.succes > 0 && (
+                              <div style={{ flex: 1, background: "linear-gradient(180deg,#7c3aed,#a855f7)", opacity: d.isToday ? 1 : 0.85 }} />
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div style={{ display: "flex", gap: 10, padding: "4px 4px 0" }}>
+                    {days7.map((d, i) => (
+                      <span key={i} style={{ flex: 1, textAlign: "center", fontSize: 10, color: d.isToday ? "#374151" : "#9ca3af", fontWeight: d.isToday ? 600 : 400 }}>
+                        {d.label}
+                      </span>
+                    ))}
+                  </div>
+                  <div style={{ display: "flex", gap: 16, justifyContent: "center", marginTop: 12 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: "#6b7280" }}>
+                      <span style={{ width: 10, height: 10, borderRadius: 2, background: "#7c3aed" }} />
+                      Analyses réussies ({succesTotal})
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: "#6b7280" }}>
+                      <span style={{ width: 10, height: 10, borderRadius: 2, background: "#dc2626" }} />
+                      Échecs ({logs.length - succesTotal})
+                    </div>
+                  </div>
+                </>
               )}
             </div>
 
-            {/* Tickets analysés récemment */}
-            <div className="ad-card" style={{ margin: 0 }}>
-              <h2 className="ad-card-title">Tickets analysés récemment</h2>
-              {ticketsAnalyses.length === 0 ? (
-                <p style={{ fontSize: 13, color: "var(--color-text-tertiary)", textAlign: "center", padding: "24px 0" }}>
-                  Aucun ticket analysé.
-                </p>
-              ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
-                  {ticketsAnalyses.slice(0, 10).map(t => (
-                    <div key={t._id} style={{ padding: "8px 10px", border: "0.5px solid var(--color-border-tertiary)", borderRadius: 8 }}>
-                      <p style={{ fontSize: 12, fontWeight: 500, color: "var(--color-text-primary)", margin: 0 }}>{t.titre}</p>
-                      <div style={{ display: "flex", gap: 6, marginTop: 4, flexWrap: "wrap" }}>
-                        {t.sentimentClient && (
-                          <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 4, background: t.sentimentClient === "frustre" ? "#fef2f2" : "#f0fdf4", color: t.sentimentClient === "frustre" ? "#b91c1c" : "#15803d" }}>
-                            {t.sentimentClient === "frustre" ? "😤 Frustré" : "😊 Calme"}
-                          </span>
-                        )}
-                        {t.categorieIa && (
-                          <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 4, background: "#eff6ff", color: "#1d4ed8" }}>🏷️ {t.categorieIa}</span>
-                        )}
-                        {t.prioriteIa && (
-                          <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 4, background: "#f5f3ff", color: "#7c3aed" }}>⭐ {t.prioriteIa}</span>
-                        )}
-                        {t.assigneAutomatiquement && (
-                          <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 4, background: "#f0fdf4", color: "#15803d" }}>🤖 Auto-assigné</span>
-                        )}
-                      </div>
-                      {t.resumeIa && (
-                        <p style={{ fontSize: 11, color: "var(--color-text-secondary)", margin: "4px 0 0", fontStyle: "italic" }}>💡 {t.resumeIa}</p>
-                      )}
-                    </div>
+            {/* ═══ LIGNE 3 : 2 COLONNES ═══ */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+
+              {/* Logs dédoublonnés avec filtres */}
+              <div className="ad-card" style={{ margin: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                  <h2 className="ad-card-title" style={{ margin: 0 }}>Logs d'analyses</h2>
+                  <span style={{ fontSize: 11, color: "#9ca3af", fontWeight: 400 }}>1 ligne par ticket</span>
+                </div>
+
+                <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
+                  {[
+                    { value: "tous",   label: `Tous (${logsDedupliques.length})`, activeColor: "#2563eb", activeBg: "#eff6ff" },
+                    { value: "succes", label: `✓ Succès (${logsDedupliques.filter(x => x.dernier.statut === "succes" || x.dernier.succes === true).length})`, activeColor: "#15803d", activeBg: "#f0fdf4" },
+                    { value: "echecs", label: `✗ Échecs (${logsDedupliques.filter(x => !(x.dernier.statut === "succes" || x.dernier.succes === true)).length})`, activeColor: "#b91c1c", activeBg: "#fef2f2" },
+                  ].map(f => (
+                    <button key={f.value} onClick={() => { setFilterLogs(f.value); setLogsVisibles(10); }} style={{
+                      fontSize: 11, padding: "3px 10px", borderRadius: 20, cursor: "pointer",
+                      border: "0.5px solid",
+                      borderColor: filterLogs === f.value ? f.activeColor : "var(--color-border-tertiary)",
+                      background: filterLogs === f.value ? f.activeBg : "var(--color-background-secondary)",
+                      color: filterLogs === f.value ? f.activeColor : "var(--color-text-secondary)",
+                    }}>{f.label}</button>
                   ))}
                 </div>
+
+                {logsAffiches.length === 0 ? (
+                  <p style={{ fontSize: 13, color: "var(--color-text-tertiary)", textAlign: "center", padding: "24px 0" }}>
+                    Aucun log pour ce filtre.
+                  </p>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {logsAffiches.slice(0, logsVisibles).map(({ dernier: l, count }, i) => {
+                      const isOk = l.statut === "succes" || l.succes === true;
+                      return (
+                        <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "10px", border: `0.5px solid ${isOk ? "var(--color-border-tertiary)" : "#fecaca"}`, borderRadius: 8, background: isOk ? "var(--color-background-primary)" : "#fff8f8" }}>
+                          <div style={{ width: 8, height: 8, borderRadius: "50%", background: isOk ? "#16a34a" : "#dc2626", boxShadow: `0 0 0 2px ${isOk ? "#bbf7d0" : "#fecaca"}`, flexShrink: 0, marginTop: 5 }} />
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 12, fontWeight: 500, color: "var(--color-text-primary)", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, minWidth: 0 }}>{l.ticket?.titre || "Ticket inconnu"}</span>
+                              {count > 1 && isOk && (
+                                <span style={{ fontSize: 9, background: "#eff6ff", color: "#1d4ed8", padding: "1px 6px", borderRadius: 10, fontWeight: 600, flexShrink: 0 }}>
+                                  Analysé {count}×
+                                </span>
+                              )}
+                              {!isOk && (
+                                <span style={{ fontSize: 9, background: "#fef2f2", color: "#b91c1c", padding: "1px 6px", borderRadius: 10, fontWeight: 600, flexShrink: 0 }}>
+                                  Échec
+                                </span>
+                              )}
+                            </div>
+                            <p style={{ fontSize: 11, color: "var(--color-text-secondary)", margin: "2px 0 0" }}>
+                              {isOk ? "Dernière analyse : " : ""}
+                              <strong style={{ color: "var(--color-text-primary)" }}>{tempsRelatif(l.createdAt)}</strong>
+                              {l.dureeMs && isOk && ` · ${Math.round(l.dureeMs / 1000)}s`}
+                              {l.auteur?.prenom && ` · par ${l.auteur.prenom}${l.auteur.nom ? " " + l.auteur.nom : ""}`}
+                            </p>
+                            {l.erreur && !isOk && (
+                              <p style={{ fontSize: 11, color: "#b91c1c", margin: "4px 0 0", padding: "4px 8px", background: "#fee2e2", borderRadius: 4, fontFamily: "monospace" }}>
+                                {l.erreur}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {/* BOUTONS PAGINATION : afficher plus / réduire */}
+                    {logsAffiches.length > logsVisibles && (
+                      <button
+                        onClick={() => setLogsVisibles(v => v + 10)}
+                        style={{
+                          marginTop: 4,
+                          padding: "8px 14px",
+                          border: "0.5px solid #bfdbfe",
+                          borderRadius: 8,
+                          background: "#eff6ff",
+                          color: "#1d4ed8",
+                          fontSize: 12,
+                          fontWeight: 600,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 6,
+                          transition: "all .15s"
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = "#dbeafe"; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = "#eff6ff"; }}
+                      >
+                        <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+                          <path d="M3.204 5h9.592L8 10.481 3.204 5zm-.753.659 4.796 5.48a1 1 0 0 0 1.506 0l4.796-5.48c.566-.647.106-1.659-.753-1.659H3.204a1 1 0 0 0-.753 1.659z"/>
+                        </svg>
+                        Voir {Math.min(10, logsAffiches.length - logsVisibles)} logs de plus
+                        <span style={{ fontSize: 10, opacity: 0.7, fontWeight: 400 }}>
+                          ({logsVisibles} / {logsAffiches.length})
+                        </span>
+                      </button>
+                    )}
+
+                    {/* Bouton Réduire si on a dépassé les 10 initiaux */}
+                    {logsVisibles > 10 && logsAffiches.length > 10 && (
+                      <button
+                        onClick={() => setLogsVisibles(10)}
+                        style={{
+                          marginTop: logsAffiches.length > logsVisibles ? 0 : 4,
+                          padding: "6px 14px",
+                          border: "0.5px solid var(--color-border-tertiary)",
+                          borderRadius: 8,
+                          background: "var(--color-background-secondary)",
+                          color: "var(--color-text-secondary)",
+                          fontSize: 11,
+                          fontWeight: 500,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 6
+                        }}
+                      >
+                        <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor">
+                          <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" transform="rotate(180 8 8)"/>
+                        </svg>
+                        Réduire la liste
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Tickets analysés récemment */}
+              <div className="ad-card" style={{ margin: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                  <h2 className="ad-card-title" style={{ margin: 0 }}>Tickets analysés récemment</h2>
+                  <span style={{ fontSize: 11, color: "#9ca3af", fontWeight: 400 }}>dédoublonnés</span>
+                </div>
+                {ticketsAnalysesRecents.length === 0 ? (
+                  <p style={{ fontSize: 13, color: "var(--color-text-tertiary)", textAlign: "center", padding: "24px 0" }}>
+                    Aucun ticket analysé.
+                  </p>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {ticketsAnalysesRecents.slice(0, 10).map(t => (
+                      <div key={t._id} style={{ padding: "10px 12px", border: "0.5px solid var(--color-border-tertiary)", borderRadius: 8 }}>
+                        <p style={{ fontSize: 12, fontWeight: 500, color: "var(--color-text-primary)", margin: "0 0 4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.titre}</p>
+                        <div style={{ display: "flex", gap: 4, marginBottom: 6, flexWrap: "wrap" }}>
+                          {t.sentimentClient && (
+                            <span style={{ fontSize: 10, padding: "1px 7px", borderRadius: 4, background: t.sentimentClient === "frustre" ? "#fef2f2" : "#f0fdf4", color: t.sentimentClient === "frustre" ? "#b91c1c" : "#15803d" }}>
+                              {t.sentimentClient === "frustre" ? "😤 Frustré" : "😊 Calme"}
+                            </span>
+                          )}
+                          {t.categorieIa && (
+                            <span style={{ fontSize: 10, padding: "1px 7px", borderRadius: 4, background: "#eff6ff", color: "#1d4ed8" }}>🏷️ {t.categorieIa}</span>
+                          )}
+                          {t.prioriteIa && (
+                            <span style={{ fontSize: 10, padding: "1px 7px", borderRadius: 4, background: "#f5f3ff", color: "#7c3aed" }}>⭐ {t.prioriteIa}</span>
+                          )}
+                          {t.assigneAutomatiquement && (
+                            <span style={{ fontSize: 10, padding: "1px 7px", borderRadius: 4, background: "#f0fdf4", color: "#15803d" }}>🤖 Auto-assigné</span>
+                          )}
+                        </div>
+                        {t.resumeIa && (
+                          <p style={{ fontSize: 11, color: "var(--color-text-secondary)", margin: 0, fontStyle: "italic", lineHeight: 1.4 }}>💡 {t.resumeIa}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* ═══ LIGNE 4 : ALERTES SYSTÈME ═══ */}
+            <p style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: ".06em", margin: "8px 0 0" }}>
+              Alertes système — détection automatique
+            </p>
+            <div className="ad-card" style={{ margin: 0 }}>
+
+              {/* Aucune alerte ne se déclenche */}
+              {logs.length > 0 && echecs24h.length === 0 && ticketsNonAnalyses.length < 20 && !ticketLePlusReanalyse && (
+                <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 8, background: "#f0fdf4", border: "1px solid #bbf7d0" }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 8, background: "#bbf7d0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>✅</div>
+                  <div>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: "#15803d", margin: "0 0 2px" }}>Tout va bien</p>
+                    <p style={{ fontSize: 11, color: "#6b7280", margin: 0 }}>Aucune alerte active — le système IA fonctionne normalement.</p>
+                  </div>
+                </div>
               )}
+
+              {/* Alerte 1 : Système stable (pas d'échec 7j) */}
+              {logs.length > 0 && logs.filter(l => l.createdAt && (now - new Date(l.createdAt)) <= ms7j && !(l.statut === "succes" || l.succes === true)).length === 0 && (
+                <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 8, background: "#f0fdf4", border: "1px solid #bbf7d0", marginBottom: 8 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 8, background: "#bbf7d0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>✅</div>
+                  <div>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: "#15803d", margin: "0 0 2px" }}>Système stable</p>
+                    <p style={{ fontSize: 11, color: "#6b7280", margin: 0 }}>
+                      Aucune erreur d'analyse depuis 7 jours — taux de fiabilité <strong>{tauxFiabilite}%</strong>
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Alerte 2 : Charge importante */}
+              {ticketsNonAnalyses.length >= 20 && (
+                <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 8, background: "#fefce8", border: "1px solid #fde68a", marginBottom: 8 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 8, background: "#fde68a", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>⚠️</div>
+                  <div>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: "#a16207", margin: "0 0 2px" }}>Charge importante</p>
+                    <p style={{ fontSize: 11, color: "#6b7280", margin: 0 }}>
+                      <strong>{ticketsNonAnalyses.length}</strong> tickets sont en attente d'analyse — pensez à alerter l'équipe support
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Alerte 3 : Taux d'échec élevé */}
+              {logs24h.length > 0 && (echecs24h.length / logs24h.length) > 0.1 && (
+                <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 8, background: "#fef2f2", border: "1px solid #fecaca", marginBottom: 8 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 8, background: "#fecaca", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>🚨</div>
+                  <div>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: "#b91c1c", margin: "0 0 2px" }}>Taux d'échec élevé</p>
+                    <p style={{ fontSize: 11, color: "#6b7280", margin: 0 }}>
+                      <strong>{echecs24h.length}</strong> échec{echecs24h.length > 1 ? "s" : ""} sur <strong>{logs24h.length}</strong> analyses dans les dernières 24h ({Math.round((echecs24h.length / logs24h.length) * 100)}%)
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Alerte 4 : Analyses répétées */}
+              {ticketLePlusReanalyse && (
+                <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 8, background: "#fef2f2", border: "1px solid #fecaca", marginBottom: 8 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 8, background: "#fecaca", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>🔁</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: "#b91c1c", margin: "0 0 2px" }}>Analyses répétées détectées</p>
+                    <p style={{ fontSize: 11, color: "#6b7280", margin: 0 }}>
+                      Le ticket <strong style={{ color: "var(--color-text-primary)" }}>"{ticketLePlusReanalyse.dernier.ticket?.titre}"</strong> a été analysé <strong>{ticketLePlusReanalyse.count} fois</strong> — vérifier la qualité de la 1ère analyse
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Cas où aucun log */}
+              {logs.length === 0 && (
+                <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 8, background: "#f9fafb", border: "1px solid #e5e7eb" }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 8, background: "#e5e7eb", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>ℹ️</div>
+                  <div>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: "#6b7280", margin: "0 0 2px" }}>Aucune donnée disponible</p>
+                    <p style={{ fontSize: 11, color: "#9ca3af", margin: 0 }}>
+                      Lancez quelques analyses depuis l'interface chef d'équipe pour voir apparaître les alertes.
+                    </p>
+                  </div>
+                </div>
+              )}
+
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
 
 // ============================================================
-// ADMIN DASHBOARD (ton code original — inchangé)
+// ADMIN DASHBOARD (inchangé)
 // ============================================================
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -785,7 +1515,7 @@ const AdminDashboard = () => {
             </div>
           )}
 
-          {/* ── NOUVEL ONGLET ANALYSE IA ── */}
+          {/* ── ONGLET ANALYSE IA — MODE CONSULTATION ── */}
           {activeTab==="ia-admin"&&(
             <div className="ad-card">
               <IaAdminPage token={token}/>

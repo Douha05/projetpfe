@@ -75,6 +75,30 @@ const PRIO_LABELS = { low: "Faible", medium: "Moyen", high: "Haute", critical: "
 const PRIO_COLORS = { low: "#16a34a", medium: "#d97706", high: "#ea580c", critical: "#dc2626" };
 const PALETTE     = ["#2563eb","#16a34a","#dc2626","#d97706","#7c3aed","#0891b2","#db2777","#65a30d","#ea580c","#059669","#9333ea","#374151","#0284c7","#b91c1c","#c2410c","#f59e0b"];
 
+/* ── Helpers IA (module-level) ───────────────────────────── */
+const parseContenuIa = (contenu) => {
+  if (!contenu) return {};
+  if (typeof contenu === "object") return contenu;
+  try { return JSON.parse(contenu); }
+  catch { return { texte: String(contenu) }; }
+};
+
+// Garde UNE seule suggestion par type (celle avec le plus haut score)
+const meilleuresSuggestionsParType = (suggestions) => {
+  const byType = {};
+  suggestions.forEach(s => {
+    const score = s.scoreConfiance ?? 0;
+    if (!byType[s.type] || score > (byType[s.type].scoreConfiance ?? 0)) {
+      byType[s.type] = s;
+    }
+  });
+  const ordre = ["analyse", "priorite", "assignation", "reponse_auto"];
+  return Object.values(byType).sort((a, b) => {
+    const ia = ordre.indexOf(a.type), ib = ordre.indexOf(b.type);
+    return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+  });
+};
+
 const PrioBadge   = ({ p }) => { const c = PRIO_MAP[p] || PRIO_MAP.medium; return <span style={{ background: c.bg, color: c.color, border: `1px solid ${c.border}`, fontSize: 11, fontWeight: 500, padding: "2px 8px", borderRadius: 6 }}>{c.label}</span>; };
 const StatutBadge = ({ s }) => { const m = STATUT_MAP[s] || { label: s, bg: "#f9fafb", color: "#6b7280" }; return <span style={{ background: m.bg, color: m.color, fontSize: 11, fontWeight: 500, padding: "2px 8px", borderRadius: 6 }}>{m.label}</span>; };
 
@@ -231,7 +255,6 @@ function DateRangePicker({ range, setRange, compareMode, setCompareMode }) {
         <div onClick={e=>e.stopPropagation()}
           style={{position:"absolute",top:"calc(100% + 8px)",left:0,zIndex:9999,background:"#fff",border:"1px solid #e5e7eb",borderRadius:12,boxShadow:"0 16px 40px rgba(0,0,0,.14)",width:280,overflow:"hidden"}}>
 
-          {/* Tabs */}
           <div style={{display:"flex",borderBottom:"1px solid #f1f5f9"}}>
             {[{id:"preset",label:"Période"},{id:"custom",label:"Calendrier"},{id:"compare",label:"Comparer"}].map(t=>(
               <button key={t.id} onClick={()=>setTab(t.id)}
@@ -241,7 +264,6 @@ function DateRangePicker({ range, setRange, compareMode, setCompareMode }) {
             ))}
           </div>
 
-          {/* Période presets */}
           {tab==="preset" && (
             <div style={{padding:10}}>
               {PRESETS.map(p=>(
@@ -254,7 +276,6 @@ function DateRangePicker({ range, setRange, compareMode, setCompareMode }) {
             </div>
           )}
 
-          {/* Calendrier custom */}
           {tab==="custom" && (
             <div style={{padding:12,display:"flex",flexDirection:"column",gap:8}}>
               <div>
@@ -274,11 +295,9 @@ function DateRangePicker({ range, setRange, compareMode, setCompareMode }) {
             </div>
           )}
 
-          {/* Comparer */}
           {tab==="compare" && (
             <div style={{padding:10}}>
               <p style={{fontSize:11,color:"#9ca3af",margin:"0 0 8px 10px",fontWeight:500}}>Comparer avec</p>
-              {/* Désactiver */}
               <button onClick={()=>{setCompareMode&&setCompareMode(null);setOpen(false);}}
                 style={{display:"flex",alignItems:"center",justifyContent:"space-between",width:"100%",padding:"8px 10px",border:"none",borderRadius:7,cursor:"pointer",background:!compareMode?"#fef2f2":"none",color:!compareMode?"#b91c1c":"#374151",fontSize:12,fontWeight:!compareMode?600:400,marginBottom:4}}>
                 Désactiver la comparaison
@@ -309,7 +328,8 @@ function DateRangePicker({ range, setRange, compareMode, setCompareMode }) {
 }
 
 /* ── Charts ─────────────────────────────────────────────── */
-const MiniLineChart = ({ data, keys, colors, height=110 }) => {  const all=data.flatMap(d=>keys.map(k=>d[k]||0));
+const MiniLineChart = ({ data, keys, colors, height=110 }) => {
+  const all=data.flatMap(d=>keys.map(k=>d[k]||0));
   const max=Math.max(...all,1);
   const W=340,H=height,PL=28,PB=20,PT=6,PR=6;
   const cW=W-PL-PR,cH=H-PT-PB;
@@ -328,43 +348,6 @@ const MiniLineChart = ({ data, keys, colors, height=110 }) => {  const all=data.
     </svg>
   );
 };
-const MiniLineChartCompare = ({ evol, cmpEvol, colorC, colorR, cmpLabel, height=120 }) => {
-  const allVals=[...evol.flatMap(d=>[d.crees,d.resolus]),...cmpEvol.flatMap(d=>[d.crees,d.resolus])];
-  const max=Math.max(...allVals,1);
-  const W=340,H=height,PL=28,PB=28,PT=8,PR=6;
-  const cW=W-PL-PR,cH=H-PT-PB;
-  const xP=(i,len)=>PL+(i/Math.max(len-1,1))*cW;
-  const yP=(v)=>PT+cH-(v/max)*cH;
-  const colorCFaded=colorC+"66", colorRFaded=colorR+"66";
-  const ptsCurC=evol.map((d,i)=>xP(i,evol.length)+","+yP(d.crees)).join(" ");
-  const ptsCurR=evol.map((d,i)=>xP(i,evol.length)+","+yP(d.resolus)).join(" ");
-  const ptsCmpC=cmpEvol.map((d,i)=>xP(i,cmpEvol.length)+","+yP(d.crees)).join(" ");
-  const ptsCmpR=cmpEvol.map((d,i)=>xP(i,cmpEvol.length)+","+yP(d.resolus)).join(" ");
-  return(
-    <div>
-      <div style={{display:"flex",gap:16,marginBottom:8,flexWrap:"wrap"}}>
-        <div style={{display:"flex",alignItems:"center",gap:6}}><div style={{width:20,height:2.5,background:colorC,borderRadius:2}}/><span style={{fontSize:10,color:"#374151"}}>Créés (actuel)</span></div>
-        <div style={{display:"flex",alignItems:"center",gap:6}}><div style={{width:20,height:2.5,background:colorR,borderRadius:2}}/><span style={{fontSize:10,color:"#374151"}}>Résolus (actuel)</span></div>
-        <div style={{display:"flex",alignItems:"center",gap:6}}><svg width="20" height="6"><line x1="0" y1="3" x2="20" y2="3" stroke={colorCFaded} strokeWidth="2" strokeDasharray="4 2"/></svg><span style={{fontSize:10,color:"#9ca3af"}}>Créés ({cmpLabel})</span></div>
-        <div style={{display:"flex",alignItems:"center",gap:6}}><svg width="20" height="6"><line x1="0" y1="3" x2="20" y2="3" stroke={colorRFaded} strokeWidth="2" strokeDasharray="4 2"/></svg><span style={{fontSize:10,color:"#9ca3af"}}>Résolus ({cmpLabel})</span></div>
-      </div>
-      <svg viewBox={"0 0 "+W+" "+H} style={{width:"100%",height:"auto"}}>
-        {[0,.25,.5,.75,1].map((r,i)=><line key={i} x1={PL} y1={PT+cH*r} x2={W-PR} y2={PT+cH*r} stroke="#f3f4f6" strokeWidth="0.5"/>)}
-        {[max,Math.round(max/2),0].map((v,i)=><text key={i} x={PL-3} y={i===0?PT+6:i===1?PT+cH/2+3:PT+cH+3} textAnchor="end" fontSize="8" fill="#9ca3af">{v}</text>)}
-        {/* Lignes comparaison (pointillées, atténuées) */}
-        <polyline points={ptsCmpC} fill="none" stroke={colorCFaded} strokeWidth="1.5" strokeDasharray="4,3" strokeLinejoin="round" strokeLinecap="round"/>
-        <polyline points={ptsCmpR} fill="none" stroke={colorRFaded} strokeWidth="1.5" strokeDasharray="4,3" strokeLinejoin="round" strokeLinecap="round"/>
-        {/* Lignes actuelles (pleines, plus épaisses) */}
-        <polyline points={ptsCurC} fill="none" stroke={colorC} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round"/>
-        <polyline points={ptsCurR} fill="none" stroke={colorR} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round"/>
-        {evol.map((d,i)=><circle key={i} cx={xP(i,evol.length)} cy={yP(d.crees)} r="2.5" fill={colorC}/>)}
-        {evol.map((d,i)=><circle key={i} cx={xP(i,evol.length)} cy={yP(d.resolus)} r="2.5" fill={colorR}/>)}
-        {evol.map((d,i)=>(evol.length<=14||(i%2===0))&&<text key={i} x={xP(i,evol.length)} y={H-4} textAnchor="middle" fontSize="8" fill="#9ca3af">{d.lbl}</text>)}
-      </svg>
-    </div>
-  );
-};
-
 const MiniBarChartMultiColor = ({ data, height=82 }) => {
   const max=Math.max(...data.map(d=>d.val),1);
   const W=280,H=height,PL=22,PB=18,PT=18,PR=4;
@@ -419,7 +402,7 @@ function GraphCard({ id, title, colorPickers, onDragStart, onDragOver, onDrop, i
     </div>
   );
 }
-function KpiCard({ id, label, value, cmpValue, text, sub, color, pct, up, onColorChange, onDragStart, onDragOver, onDrop, isDragging, isDragOver, cardColor, textColor, compareMode }) {
+function KpiCard({ id, label, value, delta, sub, color, pct, up, onColorChange, onDragStart, onDragOver, onDrop, isDragging, isDragOver, cardColor, textColor }) {
   return(
     <div draggable onDragStart={e=>{e.dataTransfer.effectAllowed="move";onDragStart(id);}} onDragOver={e=>{e.preventDefault();onDragOver(id);}} onDrop={e=>{e.preventDefault();onDrop(id);}} onDragEnd={()=>onDrop(null)}
       style={{background:cardColor||"#fff",border:isDragOver?"2px dashed #93c5fd":"1px solid #e5e7eb",borderTop:`2.5px solid ${color}`,borderRadius:10,padding:"11px 12px",opacity:isDragging?0.4:1,cursor:"grab",boxShadow:isDragOver?"0 0 0 2px #93c5fd":"none",transition:"opacity .2s,box-shadow .2s",display:"flex",flexDirection:"column",gap:3}}>
@@ -428,22 +411,8 @@ function KpiCard({ id, label, value, cmpValue, text, sub, color, pct, up, onColo
         <div onMouseDown={e=>e.stopPropagation()} onClick={e=>e.stopPropagation()} style={{flexShrink:0,marginLeft:4}}><ColorPicker value={color} onChange={onColorChange} label={label}/></div>
       </div>
       <span style={{fontSize:20,fontWeight:700,lineHeight:1.1,color}}>{value}</span>
-      {compareMode && cmpValue !== undefined ? (
-        <div style={{display:"flex",alignItems:"center",gap:4,marginTop:1,flexWrap:"wrap"}}>
-          <span style={{fontSize:10,color:"#9ca3af"}}>vs {sub}</span>
-          {text && text!=="—" && up!==null && (
-            <span style={{fontSize:10,fontWeight:700,color:up?"#059669":"#dc2626",background:up?"#f0fdf4":"#fef2f2",padding:"1px 6px",borderRadius:4,border:`1px solid ${up?"#bbf7d0":"#fecaca"}`}}>{text}</span>
-          )}
-        </div>
-      ) : (
-        <>
-          {text
-            ? <span style={{fontSize:10,fontWeight:500,color:up?"#059669":"#dc2626"}}>{up?"▲":"▼"} {text} {sub}</span>
-            : <span style={{fontSize:10,color:textColor?textColor+"88":"#94a3b8"}}>{sub}</span>
-          }
-          {pct!==undefined&&<div style={{height:3,borderRadius:2,background:"#f1f5f9",marginTop:3,overflow:"hidden"}}><div style={{height:"100%",width:Math.min(pct,100)+"%",background:color,borderRadius:2}}/></div>}
-        </>
-      )}
+      {delta?<span style={{fontSize:10,fontWeight:500,color:up?"#059669":"#dc2626"}}>{up?"▲":"▼"} {delta} {sub}</span>:<span style={{fontSize:10,color:textColor?textColor+"88":"#94a3b8"}}>{sub}</span>}
+      {pct!==undefined&&<div style={{height:3,borderRadius:2,background:"#f1f5f9",marginTop:3,overflow:"hidden"}}><div style={{height:"100%",width:Math.min(pct,100)+"%",background:color,borderRadius:2}}/></div>}
     </div>
   );
 }
@@ -499,44 +468,6 @@ const getRangeBounds = (range) => {
     case "last30": {const m=new Date(today);m.setDate(today.getDate()-29);return{from:bod(m),to:eod(today)};}
     default:       {const m=new Date(today.getFullYear(),today.getMonth(),1);return{from:bod(m),to:eod(today)};}
   }
-};
-
-/* ── getCompareBounds helper ─────────────────────────────── */
-const getCompareBounds = (range, compareMode) => {
-  const { from: rFrom, to: rTo } = getRangeBounds(range);
-  const duration = rTo - rFrom; // ms
-  const bod = d => { const x = new Date(d); x.setHours(0,0,0,0); return x; };
-  const eod = d => { const x = new Date(d); x.setHours(23,59,59,999); return x; };
-
-  switch (compareMode) {
-    case "prev_week": {
-      const s = new Date(rFrom); s.setDate(s.getDate() - 7);
-      const e = new Date(rTo);   e.setDate(e.getDate() - 7);
-      return { from: bod(s), to: eod(e) };
-    }
-    case "prev_month": {
-      const s = new Date(rFrom); s.setMonth(s.getMonth() - 1);
-      const e = new Date(rTo);   e.setMonth(e.getMonth() - 1);
-      return { from: bod(s), to: eod(e) };
-    }
-    case "prev_year": {
-      const s = new Date(rFrom); s.setFullYear(s.getFullYear() - 1);
-      const e = new Date(rTo);   e.setFullYear(e.getFullYear() - 1);
-      return { from: bod(s), to: eod(e) };
-    }
-    case "prev_period":
-    default: {
-      const s = new Date(rFrom.getTime() - duration - 1);
-      const e = new Date(rFrom.getTime() - 1);
-      return { from: s, to: e };
-    }
-  }
-};
-
-const delta = (curr, prev) => {
-  if (prev === 0) return curr > 0 ? { text: "+100%", up: true } : { text: "—", up: null };
-  const pct = Math.round(((curr - prev) / prev) * 100);
-  return { text: (pct > 0 ? "+" : "") + pct + "%", up: pct >= 0 };
 };
 
 /* ── AnalyticsTab ────────────────────────────────────────── */
@@ -596,56 +527,15 @@ function AnalyticsTab({ tickets: allTickets, statsByAgent, bgColor, setBgColor }
   const radarDS=agentStats.slice(0,2).map((a,i)=>({color:[col.rad1,col.rad2][i],label:a.agent.prenom+" "+a.agent.nom,data:{"Résolution":a.resolutionPct,"SLA":Math.max(0,100-tauxEsc),"Satisfaction":a.satisfaction!=="—"?parseFloat(a.satisfaction)*20:50,"Réactivité":Math.max(0,100-Math.min(avgH,100)),"Charge":a.assigned>0?Math.min(100,(a.inProgress/a.assigned)*100):0}}));
 
   const buildEvol=()=>{const count=periode==="semaine"?7:periode==="mois"?30:periode==="3 mois"?12:12;const isWeeks=periode==="3 mois",isMonths=periode==="annee";const today=new Date();return Array.from({length:count},(_,i)=>{const s=new Date(today),e=new Date(today);if(isMonths){s.setMonth(today.getMonth()-(count-1-i));s.setDate(1);s.setHours(0,0,0,0);e.setMonth(s.getMonth()+1);e.setDate(0);e.setHours(23,59,59,999);}else if(isWeeks){s.setDate(today.getDate()-(count-1-i)*7);s.setHours(0,0,0,0);e.setDate(s.getDate()+6);e.setHours(23,59,59,999);}else{s.setDate(today.getDate()-(count-1-i));s.setHours(0,0,0,0);e.setDate(s.getDate());e.setHours(23,59,59,999);}const lbl=isMonths?s.toLocaleDateString("fr-FR",{month:"short"}):isWeeks?"S"+(i+1):s.getDate()+"/"+(s.getMonth()+1);return{lbl,crees:allTickets.filter(t=>{const d=new Date(t.createdAt);return d>=s&&d<=e;}).length,resolus:allTickets.filter(t=>{const d=new Date(t.updatedAt);return["solved","closed"].includes(t.statut)&&d>=s&&d<=e;}).length};});};
-
-  const buildCmpEvol=()=>{if(!cmpBounds)return[];const count=periode==="semaine"?7:periode==="mois"?30:periode==="3 mois"?12:12;const isWeeks=periode==="3 mois",isMonths=periode==="annee";const cmpEnd=new Date(cmpBounds.to);return Array.from({length:count},(_,i)=>{const s=new Date(cmpEnd),e=new Date(cmpEnd);if(isMonths){s.setMonth(cmpEnd.getMonth()-(count-1-i));s.setDate(1);s.setHours(0,0,0,0);e.setMonth(s.getMonth()+1);e.setDate(0);e.setHours(23,59,59,999);}else if(isWeeks){s.setDate(cmpEnd.getDate()-(count-1-i)*7);s.setHours(0,0,0,0);e.setDate(s.getDate()+6);e.setHours(23,59,59,999);}else{s.setDate(cmpEnd.getDate()-(count-1-i));s.setHours(0,0,0,0);e.setDate(s.getDate());e.setHours(23,59,59,999);}const lbl=isMonths?s.toLocaleDateString("fr-FR",{month:"short"}):isWeeks?"S"+(i+1):s.getDate()+"/"+(s.getMonth()+1);return{lbl,crees:allTickets.filter(t=>{const d=new Date(t.createdAt);return d>=s&&d<=e;}).length,resolus:allTickets.filter(t=>{const d=new Date(t.updatedAt);return["solved","closed"].includes(t.statut)&&d>=s&&d<=e;}).length};});};
-
   const evol=buildEvol();
 
-  // ── Données période de comparaison ───────────────────────
-  const cmpBounds    = compareMode ? getCompareBounds(dateRange, compareMode) : null;
-  const cmpTickets   = cmpBounds ? filterByAgentFn(allTickets.filter(t=>{const c=new Date(t.createdAt);return c>=cmpBounds.from&&c<=cmpBounds.to;}), agentFilter) : [];
-  const cmpResolved  = cmpTickets.filter(t=>["solved","closed"].includes(t.statut));
-  const cmpEscalated = cmpTickets.filter(t=>t.statut==="escalated");
-  const cmpUnassigned= cmpTickets.filter(t=>!t.assignee);
-  const cmpTauxRes   = cmpTickets.length>0?Math.round((cmpResolved.length/cmpTickets.length)*100):0;
-  const cmpTauxEsc   = cmpTickets.length>0?Math.round((cmpEscalated.length/cmpTickets.length)*100):0;
-  const cmpWithFb    = cmpTickets.filter(t=>t.feedback?.note>0);
-  const cmpAvgSat    = cmpWithFb.length>0?(cmpWithFb.reduce((s,t)=>s+t.feedback.note,0)/cmpWithFb.length).toFixed(1):"—";
-  const cmpAvgH      = cmpResolved.length>0?Math.round(cmpResolved.reduce((s,t)=>s+(new Date(t.updatedAt)-new Date(t.createdAt)),0)/cmpResolved.length/3600000):0;
-  const compareModeLabel = compareMode ? ({prev_week:"Sem. préc.",prev_month:"Mois préc.",prev_year:"An préc.",prev_period:"Pér. préc."}[compareMode]||"") : "";
-
-  // ── KPI data ─────────────────────────────────────────────
-  const mkDelta = (curr, prev) => {
-    if (prev === 0) return curr > 0 ? { text:"+100%", up:true } : { text:"—", up:null };
-    const pct = Math.round(((curr - prev) / prev) * 100);
-    return { text:(pct>=0?"+":"")+pct+"%", up:pct>=0 };
-  };
-
-  const kpiData = compareMode ? [
-    { label:"Total tickets",    value:tickets.length,        cmpValue:cmpTickets.length,    sub:cmpTickets.length+" ("+compareModeLabel+")",    ...mkDelta(tickets.length,    cmpTickets.length)    },
-    { label:"Tickets résolus",  value:resolved.length,       cmpValue:cmpResolved.length,   sub:cmpResolved.length+" ("+compareModeLabel+")",   ...mkDelta(resolved.length,   cmpResolved.length)   },
-    { label:"Taux résolution",  value:tauxRes+"%",           cmpValue:cmpTauxRes,           sub:cmpTauxRes+"% ("+compareModeLabel+")",          ...mkDelta(tauxRes,           cmpTauxRes)           },
-    { label:"Taux SLA",         value:(100-tauxEsc)+"%",     cmpValue:100-cmpTauxEsc,       sub:(100-cmpTauxEsc)+"% ("+compareModeLabel+")",    ...mkDelta(100-tauxEsc,       100-cmpTauxEsc)       },
-    { label:"Temps moyen rés.", value:avgH+"h",              cmpValue:cmpAvgH,              sub:cmpAvgH+"h ("+compareModeLabel+")",             ...(avgH>0&&cmpAvgH>0 ? mkDelta(cmpAvgH,avgH) : {text:"—",up:null}) },
-    { label:"Satisfaction",     value:avgSat+"/5",           cmpValue:cmpAvgSat,            sub:(cmpAvgSat==="—"?"—":cmpAvgSat+"/5")+" ("+compareModeLabel+")", ...(avgSat!=="—"&&cmpAvgSat!=="—" ? mkDelta(Math.round(parseFloat(avgSat)*10), Math.round(parseFloat(cmpAvgSat)*10)) : {text:"—",up:null}) },
-    { label:"Escaladés",        value:escalated.length,      cmpValue:cmpEscalated.length,  sub:cmpEscalated.length+" ("+compareModeLabel+")",  ...mkDelta(escalated.length,  cmpEscalated.length)  },
-    { label:"Non assignés",     value:unassigned.length,     cmpValue:cmpUnassigned.length, sub:cmpUnassigned.length+" ("+compareModeLabel+")", ...mkDelta(unassigned.length, cmpUnassigned.length) },
-  ] : [
-    { label:"Total tickets",    value:tickets.length,     sub:"vs période préc.", text:"+12%", up:true  },
-    { label:"Tickets résolus",  value:resolved.length,    sub:"vs période préc.", text:"+8%",  up:true  },
-    { label:"Taux résolution",  value:tauxRes+"%",        sub:"obj. 80%",         text:"+5%",  up:true,  pct:tauxRes      },
-    { label:"Taux SLA",         value:(100-tauxEsc)+"%",  sub:"obj. 90%",         text:"-2%",  up:false, pct:100-tauxEsc  },
-    { label:"Temps moyen rés.", value:avgH+"h",           sub:"vs période préc.", text:"-15%", up:true  },
-    { label:"Satisfaction",     value:avgSat+"/5",        sub:withFb.length+" avis", text:"+0.2", up:true },
-    { label:"Escaladés",        value:escalated.length,   sub:"cette période",    text:"+3",   up:false },
-    { label:"Non assignés",     value:unassigned.length,  sub:"en attente",       text:"",     up:true  },
-  ];
+  const kpiData=[{label:"Total tickets",value:tickets.length,sub:"vs période préc.",delta:"+12%",up:true},{label:"Tickets résolus",value:resolved.length,sub:"vs période préc.",delta:"+8%",up:true},{label:"Taux résolution",value:tauxRes+"%",sub:"obj. 80%",delta:"+5%",up:true,pct:tauxRes},{label:"Taux SLA",value:(100-tauxEsc)+"%",sub:"obj. 90%",delta:"-2%",up:false,pct:100-tauxEsc},{label:"Temps moyen rés.",value:avgH+"h",sub:"vs période préc.",delta:"-15%",up:true},{label:"Satisfaction",value:avgSat+"/5",sub:withFb.length+" avis",delta:"+0.2",up:true},{label:"Escaladés",value:escalated.length,sub:"cette période",delta:"+3",up:false},{label:"Non assignés",value:unassigned.length,sub:"en attente",delta:"",up:true}];
 
   const gp=(id)=>({id,onDragStart:onDS,onDragOver:onDO,onDrop:onDrop2,isDragging:drag===id,isDragOver:dOver===id&&drag!==id,cardColor,textColor});
 
   const renderGraph=(id)=>{
     switch(id){
-      case "evolution": return(<GraphCard key={id} {...gp(id)} title={compareMode?`Évolution — actuel vs ${compareModeLabel}`:"Évolution — créés vs résolus"} colorPickers={<><span style={{display:"flex",alignItems:"center",gap:3,fontSize:11,color:col.lineC}}><ColorPicker value={col.lineC} onChange={sc("lineC")} label="Créés"/>Créés</span><span style={{display:"flex",alignItems:"center",gap:3,fontSize:11,color:col.lineR}}><ColorPicker value={col.lineR} onChange={sc("lineR")} label="Résolus"/>Résolus</span><select value={periode} onChange={e=>setPeriode(e.target.value)} onMouseDown={e=>e.stopPropagation()} onClick={e=>e.stopPropagation()} style={{fontSize:11,border:"1px solid #e2e8f0",borderRadius:6,padding:"2px 6px",background:"#fff",cursor:"pointer",color:"#374151"}}><option value="semaine">7 jours</option><option value="mois">30 jours</option><option value="3 mois">3 mois</option><option value="annee">1 an</option></select></>}>{compareMode&&cmpBounds?<MiniLineChartCompare evol={evol} cmpEvol={buildCmpEvol()} colorC={col.lineC} colorR={col.lineR} cmpLabel={compareModeLabel} height={120}/>:<MiniLineChart data={evol} keys={["crees","resolus"]} colors={[col.lineC,col.lineR]} height={110}/>}</GraphCard>);
+      case "evolution": return(<GraphCard key={id} {...gp(id)} title="Évolution — créés vs résolus" colorPickers={<><span style={{display:"flex",alignItems:"center",gap:3,fontSize:11,color:col.lineC}}><ColorPicker value={col.lineC} onChange={sc("lineC")} label="Créés"/>Créés</span><span style={{display:"flex",alignItems:"center",gap:3,fontSize:11,color:col.lineR}}><ColorPicker value={col.lineR} onChange={sc("lineR")} label="Résolus"/>Résolus</span><select value={periode} onChange={e=>setPeriode(e.target.value)} onMouseDown={e=>e.stopPropagation()} onClick={e=>e.stopPropagation()} style={{fontSize:11,border:"1px solid #e2e8f0",borderRadius:6,padding:"2px 6px",background:"#fff",cursor:"pointer",color:"#374151"}}><option value="semaine">7 jours</option><option value="mois">30 jours</option><option value="3 mois">3 mois</option><option value="annee">1 an</option></select></>}><MiniLineChart data={evol} keys={["crees","resolus"]} colors={[col.lineC,col.lineR]} height={110}/></GraphCard>);
       case "objectifs": return(<GraphCard key={id} {...gp(id)} title="Objectifs équipe" colorPickers={null}><div style={{display:"flex",flexDirection:"column",gap:14}}>{[{label:"Taux résolution",val:tauxRes,obj:80,color:tauxRes>=80?"#16a34a":"#d97706"},{label:"Taux SLA",val:100-tauxEsc,obj:90,color:(100-tauxEsc)>=90?"#16a34a":"#dc2626"},{label:"Satisfaction",val:avgSat!=="—"?Math.round(parseFloat(avgSat)*20):0,obj:80,color:"#d97706"}].map((g,i)=>(<div key={i}><div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}><span style={{fontSize:12,color:"#6b7280"}}>{g.label}</span><div style={{display:"flex",gap:6}}><span style={{fontSize:12,fontWeight:600,color:g.color}}>{g.val}%</span><span style={{fontSize:10,color:"#9ca3af"}}>obj. {g.obj}%</span></div></div><div style={{height:7,background:"#f3f4f6",borderRadius:4,overflow:"hidden"}}><div style={{height:"100%",width:Math.min(g.val,100)+"%",background:g.color,borderRadius:4}}/></div><span style={{fontSize:10,color:g.color,marginTop:3,display:"block"}}>{g.val>=g.obj?"✓ Objectif atteint":g.color==="#dc2626"?"✗ En dessous":"⚠ En progression"}</span></div>))}</div></GraphCard>);
       case "donutType": return(<GraphCard key={id} {...gp(id)} title="Répartition par type" colorPickers={<><ColorPicker value={col.dT1} onChange={sc("dT1")} label="Bug"/><ColorPicker value={col.dT2} onChange={sc("dT2")} label="Feature"/><ColorPicker value={col.dT3} onChange={sc("dT3")} label="Consult."/></>}><div style={{display:"flex",alignItems:"center",gap:14}}><DonutChart segments={donutType} size={90}/><div style={{flex:1,display:"flex",flexDirection:"column",gap:6}}>{[{lbl:"Bug",i:0,type:"bug"},{lbl:"Feature",i:1,type:"feature"},{lbl:"Consultancy",i:2,type:"consultancy"}].map(r=>{const val=tickets.filter(t=>t.type===r.type).length,pct=tickets.length?Math.round(val/tickets.length*100):0,c=donutType[r.i].color;return<div key={r.lbl} style={{display:"flex",alignItems:"center",gap:6}}><div style={{width:8,height:8,borderRadius:2,background:c,flexShrink:0}}/><span style={{fontSize:12,color:"#374151",flex:1}}>{r.lbl}</span><span style={{fontSize:12,fontWeight:600,color:c}}>{val}</span><span style={{fontSize:11,color:"#9ca3af",minWidth:28}}>{pct}%</span></div>;})} </div></div></GraphCard>);
       case "barPrio": return(<GraphCard key={id} {...gp(id)} title="Répartition par priorité" colorPickers={null}><MiniBarChartMultiColor data={byPrio} height={82}/><div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:8}}>{byPrio.map(p=><div key={p.lbl} style={{display:"flex",alignItems:"center",gap:3}}><div style={{width:7,height:7,borderRadius:2,background:p.color}}/><span style={{fontSize:10,color:"#6b7280"}}>{p.lbl} ({p.val})</span></div>)}</div></GraphCard>);
@@ -676,7 +566,7 @@ function AnalyticsTab({ tickets: allTickets, statsByAgent, bgColor, setBgColor }
         </button>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(8,minmax(0,1fr))",gap:8}}>
-        {kpiOrder.map(k=>{const d=kpiData[parseInt(k.replace("kpi",""))];if(!d)return null;return(<KpiCard key={k} id={k} label={d.label} value={d.value} cmpValue={d.cmpValue} text={d.text} sub={d.sub} up={d.up} pct={d.pct} color={kpiColors[k]} onColorChange={v=>setKpiColors(c=>({...c,[k]:v}))} onDragStart={onKpiDS} onDragOver={onKpiDO} onDrop={onKpiDrop} isDragging={kpiDrag===k} isDragOver={kpiOver===k&&kpiDrag!==k} cardColor={cardColor} textColor={textColor} compareMode={compareMode}/>);})}
+        {kpiOrder.map(k=>{const d=kpiData[parseInt(k.replace("kpi",""))];if(!d)return null;return(<KpiCard key={k} id={k} label={d.label} value={d.value} delta={d.delta} sub={d.sub} up={d.up} pct={d.pct} color={kpiColors[k]} onColorChange={v=>setKpiColors(c=>({...c,[k]:v}))} onDragStart={onKpiDS} onDragOver={onKpiDO} onDrop={onKpiDrop} isDragging={kpiDrag===k} isDragOver={kpiOver===k&&kpiDrag!==k} cardColor={cardColor} textColor={textColor}/>);})}
       </div>
       {GRAPH_ROWS.map((rowIds,ri)=>{const orderedRow=order.filter(id=>rowIds.includes(id));return(<div key={ri} style={{display:"grid",gridTemplateColumns:getGridCols(rowIds),gap:14,alignItems:"stretch"}}>{orderedRow.map(id=>renderGraph(id))}</div>);})}
       {showBgPanel&&(<><div style={{position:"fixed",inset:0,zIndex:7999,background:"rgba(0,0,0,.4)"}} onClick={()=>setShowBgPanel(false)}/><BgPanel bg={bgColor} onChangeBg={setBgColor} textColor={textColor} onChangeText={setTextColor} cardColor={cardColor} onChangeCard={setCardColor} onClose={()=>setShowBgPanel(false)}/></>)}
@@ -726,7 +616,7 @@ export default function TeamLeadDashboard() {
 
   // ── États IA ──────────────────────────────────────────────
   const [iaStats,      setIaStats]      = useState(null);
-  const [iaLoadingSet, setIaLoadingSet] = useState(new Set()); // par ticket
+  const [iaLoadingSet, setIaLoadingSet] = useState(new Set());
   const [iaMsg,        setIaMsg]        = useState({text:"",type:""});
   const [selIaTicket,  setSelIaTicket]  = useState(null);
   const [iaSuggestions,setIaSuggestions]= useState([]);
@@ -738,6 +628,143 @@ export default function TeamLeadDashboard() {
     priorite:     { iconD: D.star,   label: "Priorité suggérée",   accent: "#a16207", bg: "#fefce8", border: "#fde68a" },
     assignation:  { iconD: D.person, label: "Agent recommandé",    accent: "#15803d", bg: "#f0fdf4", border: "#bbf7d0" },
     reponse_auto: { iconD: D.chat,   label: "Réponse automatique", accent: "#6d28d9", bg: "#fdf4ff", border: "#e9d5ff" },
+  };
+
+  /* Sentiment helpers — définis tôt car utilisés dans renderContenuSuggestion */
+  const sentimentLabel=(s)=>s==="frustre"?"Frustré":s==="desespere"?"Désespéré":s==="calme"?"Calme":s||"—";
+  const sentimentColor=(s)=>s==="frustre"?"#b91c1c":s==="desespere"?"#7f1d1d":"#15803d";
+  const sentimentBg   =(s)=>s==="frustre"?"#fef2f2":s==="desespere"?"#450a0a":"#f0fdf4";
+  const sentimentFg   =(s)=>s==="desespere"?"#fff":sentimentColor(s);
+
+  /* ── renderContenuSuggestion — parse le contenu JSON de chaque
+       suggestion et l'affiche de manière adaptée à son type */
+  const renderContenuSuggestion = (sug) => {
+    const data = parseContenuIa(sug.contenu);
+
+    switch (sug.type) {
+
+      case "reponse_auto": {
+        const msg = data.reponse || data.message || data.texte || "";
+        return (
+          <div>
+            <p style={{fontSize:10, fontWeight:600, color:"#9ca3af", textTransform:"uppercase", letterSpacing:".06em", margin:"0 0 8px"}}>
+              Message proposé au client
+            </p>
+            {msg ? (
+              <div style={{background:"#fafafa", border:"1px solid #f1f5f9", borderRadius:8, padding:"12px 14px"}}>
+                <p style={{fontSize:13, lineHeight:1.7, color:"#374151", margin:0, whiteSpace:"pre-wrap", wordBreak:"break-word"}}>
+                  {msg}
+                </p>
+              </div>
+            ) : (
+              <p style={{fontSize:12, color:"#9ca3af", margin:0, fontStyle:"italic"}}>Aucun message proposé</p>
+            )}
+          </div>
+        );
+      }
+
+      case "priorite": {
+        const prio = data.priorite || data.niveau;
+        const justif = data.justification || data.raison;
+        return (
+          <div>
+            <p style={{fontSize:10, fontWeight:600, color:"#9ca3af", textTransform:"uppercase", letterSpacing:".06em", margin:"0 0 8px"}}>
+              Priorité recommandée
+            </p>
+            <div style={{display:"flex", alignItems:"center", gap:10, marginBottom: justif ? 10 : 0}}>
+              {prio ? <PrioBadge p={prio}/> : <span style={{fontSize:12, color:"#9ca3af", fontStyle:"italic"}}>Non spécifiée</span>}
+            </div>
+            {justif && (
+              <p style={{fontSize:12, color:"#6b7280", margin:0, lineHeight:1.6, fontStyle:"italic"}}>
+                « {justif} »
+              </p>
+            )}
+          </div>
+        );
+      }
+
+      case "assignation": {
+        const agentId = data.agentId || data.agent_id || data._id;
+        const agentFromList = agentId ? agents.find(a => a._id === agentId) : null;
+        const prenom = data.prenom || agentFromList?.prenom || "";
+        const nom    = data.nom    || agentFromList?.nom    || "";
+        const email  = data.email  || agentFromList?.email  || "";
+        const raison = data.raison || data.justification;
+        const nomComplet = (prenom || nom)
+          ? `${prenom} ${nom}`.trim()
+          : (data.nomAgent || data.agent || "Agent recommandé");
+        return (
+          <div>
+            <p style={{fontSize:10, fontWeight:600, color:"#9ca3af", textTransform:"uppercase", letterSpacing:".06em", margin:"0 0 10px"}}>
+              Agent proposé
+            </p>
+            <div style={{display:"flex", alignItems:"center", gap:12, padding:"10px 12px", background:"#f0fdf4", border:"1px solid #bbf7d0", borderRadius:10}}>
+              <div style={{width:38, height:38, borderRadius:"50%", background:"#15803d", color:"#fff", display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:700, flexShrink:0}}>
+                {initials(prenom, nom) || "AG"}
+              </div>
+              <div style={{flex:1, minWidth:0}}>
+                <p style={{fontSize:14, fontWeight:600, color:"#111827", margin:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>
+                  {nomComplet}
+                </p>
+                {email && (
+                  <p style={{fontSize:11, color:"#6b7280", margin:"2px 0 0", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>
+                    {email}
+                  </p>
+                )}
+              </div>
+            </div>
+            {raison && (
+              <p style={{fontSize:12, color:"#6b7280", margin:"10px 0 0", lineHeight:1.6, fontStyle:"italic"}}>
+                « {raison} »
+              </p>
+            )}
+          </div>
+        );
+      }
+
+      case "analyse": {
+        const texte = data.analyse || data.resume || data.texte || data.diagnostic || "";
+        const sentiment = data.sentiment;
+        const categorie = data.categorie;
+        return (
+          <div>
+            <p style={{fontSize:10, fontWeight:600, color:"#9ca3af", textTransform:"uppercase", letterSpacing:".06em", margin:"0 0 8px"}}>
+              Analyse du ticket
+            </p>
+            {texte ? (
+              <p style={{fontSize:13, lineHeight:1.7, color:"#374151", margin:0, whiteSpace:"pre-wrap"}}>
+                {texte}
+              </p>
+            ) : (
+              <p style={{fontSize:12, color:"#9ca3af", margin:0, fontStyle:"italic"}}>Aucune analyse</p>
+            )}
+            {(sentiment || categorie) && (
+              <div style={{display:"flex", gap:6, flexWrap:"wrap", marginTop:10}}>
+                {sentiment && (
+                  <span style={{fontSize:11, padding:"2px 8px", borderRadius:6, background:sentimentBg(sentiment), color:sentimentFg(sentiment), fontWeight:500}}>
+                    {sentimentLabel(sentiment)}
+                  </span>
+                )}
+                {categorie && (
+                  <span style={{fontSize:11, padding:"2px 8px", borderRadius:6, background:"#eff6ff", color:"#1d4ed8", border:"1px solid #bfdbfe", fontWeight:500}}>
+                    {categorie}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      }
+
+      default: {
+        const t = data.texte || (typeof data === "string" ? data : JSON.stringify(data));
+        return (
+          <p style={{fontSize:13, color:"#374151", margin:0, whiteSpace:"pre-wrap", wordBreak:"break-word"}}>
+            {t}
+          </p>
+        );
+      }
+    }
   };
 
   useEffect(()=>{
@@ -803,11 +830,50 @@ export default function TeamLeadDashboard() {
   };
 
   const validerSuggestion=async(suggestionId,statut)=>{
+    // 1. Mise à jour optimiste — la UI change immédiatement
+    setIaSuggestions(prev => prev.map(s =>
+      s._id === suggestionId ? { ...s, statut } : s
+    ));
+
     try{
-      await fetch(`${API}/ia/suggestion/${suggestionId}`,{method:"PATCH",headers:{"Content-Type":"application/json",Authorization:`Bearer ${token}`},body:JSON.stringify({statut})});
-      if(selIaTicket)fetchIaSuggestions(selIaTicket._id);
+      const res = await fetch(`${API}/ia/suggestion/${suggestionId}`,{
+        method:"PATCH",
+        headers:{"Content-Type":"application/json",Authorization:`Bearer ${token}`},
+        body:JSON.stringify({statut})
+      });
+
+      const data = await res.json().catch(()=>({}));
+      console.log("[IA validerSuggestion] status:", res.status, "response:", data);
+
+      if(!res.ok){
+        // Rollback en cas d'erreur serveur
+        setIaSuggestions(prev => prev.map(s =>
+          s._id === suggestionId ? { ...s, statut: "en_attente" } : s
+        ));
+        setIaMsg({
+          text: `Erreur ${res.status} : ${data.message || data.erreur || "Le backend a refusé la requête"}`,
+          type:"error"
+        });
+        setTimeout(()=>setIaMsg({text:"",type:""}),5000);
+        return;
+      }
+
+      setIaMsg({
+        text: statut === "acceptee" ? "Suggestion acceptée" : "Suggestion rejetée",
+        type:"success"
+      });
+      setTimeout(()=>setIaMsg({text:"",type:""}),2500);
+
       fetchIaStats();
-    }catch(err){console.error(err);}
+    }catch(err){
+      // Rollback en cas d'erreur réseau
+      console.error("[IA validerSuggestion] Erreur:", err);
+      setIaSuggestions(prev => prev.map(s =>
+        s._id === suggestionId ? { ...s, statut: "en_attente" } : s
+      ));
+      setIaMsg({text:"Erreur réseau — le serveur ne répond pas",type:"error"});
+      setTimeout(()=>setIaMsg({text:"",type:""}),5000);
+    }
   };
 
   const ouvrirPanelIA=(t)=>{setSelIaTicket(t);fetchIaSuggestions(t._id);};
@@ -826,12 +892,6 @@ export default function TeamLeadDashboard() {
   const clientsFiltres=clients.filter(c=>{const q=searchClient.toLowerCase();return c.prenom?.toLowerCase().includes(q)||c.nom?.toLowerCase().includes(q)||c.email?.toLowerCase().includes(q);});
   const clientsAvecStats=clients.filter(c=>{const q=searchSuivi.toLowerCase();return c.prenom?.toLowerCase().includes(q)||c.nom?.toLowerCase().includes(q)||c.email?.toLowerCase().includes(q);}).map(c=>{const tc=tickets.filter(t=>t.reporter?._id===c._id||t.reporter===c._id);const total=tc.length,resolus=tc.filter(t=>["solved","closed"].includes(t.statut)).length,enCours=tc.filter(t=>t.statut==="in_progress").length,attente=tc.filter(t=>t.statut==="ready_for_support").length,escalade=tc.filter(t=>t.statut==="escalated").length,pct=total>0?Math.round((resolus/total)*100):0,feedbacks=tc.filter(t=>t.feedback?.note>0),avgNote=feedbacks.length>0?(feedbacks.reduce((s,t)=>s+t.feedback.note,0)/feedbacks.length).toFixed(1):null;return{...c,ticketsClient:tc,total,resolus,enCours,attente,escalade,pct,avgNote};});
   const pageTitle={overview:"Vue d'ensemble",analytics:"Analytiques",tickets:"Tous les tickets",agents:"Agents support",clients:"Clients",suivi:"Suivi clients","creer-client":"Créer un client",ia:"Analyse IA"};
-
-  /* ── Sentiment label without emoji ── */
-  const sentimentLabel=(s)=>s==="frustre"?"Frustré":s==="desespere"?"Désespéré":s==="calme"?"Calme":s||"—";
-  const sentimentColor=(s)=>s==="frustre"?"#b91c1c":s==="desespere"?"#7f1d1d":"#15803d";
-  const sentimentBg   =(s)=>s==="frustre"?"#fef2f2":s==="desespere"?"#450a0a":"#f0fdf4";
-  const sentimentFg   =(s)=>s==="desespere"?"#fff":sentimentColor(s);
 
   return (
     <div className="tl-layout" style={{background:bgColor}}>
@@ -923,7 +983,6 @@ export default function TeamLeadDashboard() {
           {tab==="ia"&&(
             <div style={{display:"flex",flexDirection:"column",gap:16}}>
 
-              {/* Alert message */}
               {iaMsg.text&&(
                 <div style={{display:"flex",alignItems:"center",gap:10,padding:"12px 16px",borderRadius:10,background:iaMsg.type==="success"?"#f0fdf4":"#fef2f2",border:`1px solid ${iaMsg.type==="success"?"#bbf7d0":"#fecaca"}`}}>
                   <svg width="16" height="16" viewBox="0 0 16 16" fill={iaMsg.type==="success"?"#15803d":"#b91c1c"}><path fillRule="evenodd" d={iaMsg.type==="success"?D.check:D.x}/></svg>
@@ -931,7 +990,6 @@ export default function TeamLeadDashboard() {
                 </div>
               )}
 
-              {/* KPI stats */}
               {iaStats&&(
                 <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12}}>
                   {[
@@ -953,7 +1011,6 @@ export default function TeamLeadDashboard() {
                 </div>
               )}
 
-              {/* Performance card */}
               {iaStats?.performance&&(
                 <div style={{background:"#fff",border:"1px solid #e5e7eb",borderRadius:12,padding:"20px 24px",display:"flex",alignItems:"center",gap:32,flexWrap:"wrap"}}>
                   <div style={{display:"flex",alignItems:"center",gap:16}}>
@@ -979,7 +1036,6 @@ export default function TeamLeadDashboard() {
                 </div>
               )}
 
-              {/* Tickets non analysés */}
               <div style={{background:"#fff",border:"1px solid #e5e7eb",borderRadius:12,overflow:"hidden"}}>
                 <div style={{padding:"16px 20px",borderBottom:"1px solid #f1f5f9",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                   <div style={{display:"flex",alignItems:"center",gap:10}}>
@@ -1029,7 +1085,6 @@ export default function TeamLeadDashboard() {
                 )}
               </div>
 
-              {/* Tickets analysés */}
               <div style={{background:"#fff",border:"1px solid #e5e7eb",borderRadius:12,overflow:"hidden"}}>
                 <div style={{padding:"16px 20px",borderBottom:"1px solid #f1f5f9",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                   <div style={{display:"flex",alignItems:"center",gap:10}}>
@@ -1074,13 +1129,12 @@ export default function TeamLeadDashboard() {
                 )}
               </div>
 
-              {/* ── Panel suggestions (drawer) ── */}
+              {/* ── Panel suggestions (drawer) — CORRIGÉ ── */}
               {selIaTicket&&(
                 <div style={{position:"fixed",inset:0,zIndex:9000,background:"rgba(15,23,42,0.5)",display:"flex",alignItems:"flex-start",justifyContent:"flex-end"}}
                   onClick={e=>{if(e.target===e.currentTarget)fermerPanelIA();}}>
                   <div style={{width:560,height:"100vh",background:"#fff",boxShadow:"-12px 0 48px rgba(0,0,0,0.2)",display:"flex",flexDirection:"column",animation:"slideIn .22s ease"}}>
 
-                    {/* Header */}
                     <div style={{padding:"20px 24px",borderBottom:"1px solid #f1f5f9",flexShrink:0}}>
                       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
                         <div style={{display:"flex",alignItems:"center",gap:10}}>
@@ -1089,16 +1143,15 @@ export default function TeamLeadDashboard() {
                           </div>
                           <div>
                             <p style={{fontSize:15,fontWeight:700,color:"#111827",margin:0}}>Suggestions IA</p>
-                            <p style={{fontSize:11,color:"#9ca3af",margin:0}}>{iaSuggestions.length} suggestion{iaSuggestions.length!==1?"s":""}</p>
+                            <p style={{fontSize:11,color:"#9ca3af",margin:0}}>{meilleuresSuggestionsParType(iaSuggestions).length} suggestion{meilleuresSuggestionsParType(iaSuggestions).length!==1?"s":""}</p>
                           </div>
                         </div>
                         <button onClick={fermerPanelIA} style={{width:32,height:32,borderRadius:8,border:"1px solid #e5e7eb",background:"#f9fafb",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
                           <svg width="14" height="14" viewBox="0 0 16 16" fill="#6b7280"><path fillRule="evenodd" d={D.x}/></svg>
                         </button>
                       </div>
-                      {/* Ticket info */}
                       <div style={{background:"#f9fafb",borderRadius:10,padding:"12px 14px",border:"1px solid #f1f5f9"}}>
-                        <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
+                        <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6,flexWrap:"wrap"}}>
                           <span style={{fontSize:11,fontFamily:"monospace",fontWeight:600,color:"#6b7280"}}>{ticketRef(selIaTicket._id)}</span>
                           <PrioBadge p={selIaTicket.priorite}/>
                           {selIaTicket.sentimentClient&&<span style={{fontSize:11,padding:"2px 8px",borderRadius:6,background:sentimentBg(selIaTicket.sentimentClient),color:sentimentFg(selIaTicket.sentimentClient),fontWeight:500}}>{sentimentLabel(selIaTicket.sentimentClient)}</span>}
@@ -1109,7 +1162,6 @@ export default function TeamLeadDashboard() {
                       </div>
                     </div>
 
-                    {/* Suggestions list */}
                     <div style={{flex:1,overflowY:"auto",padding:"16px 24px",display:"flex",flexDirection:"column",gap:12}}>
                       {iaSugLoading&&(
                         <div style={{display:"flex",flexDirection:"column",alignItems:"center",padding:"48px 0",gap:12}}>
@@ -1129,47 +1181,71 @@ export default function TeamLeadDashboard() {
                           </div>
                         </div>
                       )}
-                      {!iaSugLoading&&!iaSugError&&iaSuggestions.map(sug=>{
-                        const cfg=SUG_CFG[sug.type]||{iconD:D.info,label:sug.type,accent:"#374151",bg:"#f9fafb",border:"#e5e7eb"};
-                        const isAccepted=sug.statut==="acceptee";
-                        const isRejected=sug.statut==="rejetee";
-                        return(
-                          <div key={sug._id} style={{border:`1px solid ${cfg.border}`,borderRadius:12,overflow:"hidden",opacity:isRejected?0.6:1,transition:"opacity .2s"}}>
-                            {/* Suggestion header */}
-                            <div style={{padding:"12px 16px",background:cfg.bg,borderBottom:`1px solid ${cfg.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                              <div style={{display:"flex",alignItems:"center",gap:8}}>
-                                <div style={{width:28,height:28,borderRadius:7,background:"#fff",border:`1px solid ${cfg.border}`,display:"flex",alignItems:"center",justifyContent:"center"}}>
-                                  <svg width="13" height="13" viewBox="0 0 16 16" fill={cfg.accent}><path fillRule="evenodd" d={cfg.iconD}/></svg>
+
+                      {/* ── NOUVELLE BOUCLE : dédoublonnée + contenu parsé + boutons visibles ── */}
+                      {!iaSugLoading && !iaSugError && meilleuresSuggestionsParType(iaSuggestions).map(sug => {
+                        const cfg = SUG_CFG[sug.type] || {iconD: D.info, label: sug.type, accent: "#374151", bg: "#f9fafb", border: "#e5e7eb"};
+                        const isAccepted = sug.statut === "acceptee";
+                        const isRejected = sug.statut === "rejetee";
+                        return (
+                          <div key={sug._id} style={{border:`1px solid ${cfg.border}`, borderRadius:12, overflow:"hidden", opacity: isRejected ? 0.55 : 1, transition:"opacity .2s", flexShrink:0}}>
+
+                            <div style={{padding:"12px 16px", background: cfg.bg, borderBottom:`1px solid ${cfg.border}`, display:"flex", alignItems:"center", justifyContent:"space-between"}}>
+                              <div style={{display:"flex", alignItems:"center", gap:8}}>
+                                <div style={{width:28, height:28, borderRadius:7, background:"#fff", border:`1px solid ${cfg.border}`, display:"flex", alignItems:"center", justifyContent:"center"}}>
+                                  <svg width="13" height="13" viewBox="0 0 16 16" fill={cfg.accent}>
+                                    <path fillRule="evenodd" d={cfg.iconD}/>
+                                  </svg>
                                 </div>
-                                <span style={{fontSize:12,fontWeight:700,color:cfg.accent,textTransform:"uppercase",letterSpacing:".05em"}}>{cfg.label}</span>
+                                <span style={{fontSize:12, fontWeight:700, color: cfg.accent, textTransform:"uppercase", letterSpacing:".05em"}}>
+                                  {cfg.label}
+                                </span>
                               </div>
-                              {sug.scoreConfiance!=null&&(
-                                <span style={{fontSize:11,fontWeight:600,color:cfg.accent,background:"#fff",padding:"3px 10px",borderRadius:20,border:`1px solid ${cfg.border}`}}>
-                                  {Math.round(sug.scoreConfiance*100)}% confiance
+                              {sug.scoreConfiance != null && (
+                                <span style={{fontSize:11, fontWeight:600, color: cfg.accent, background:"#fff", padding:"3px 10px", borderRadius:20, border:`1px solid ${cfg.border}`}}>
+                                  {Math.round(sug.scoreConfiance * 100)}% confiance
                                 </span>
                               )}
                             </div>
-                            {/* Contenu */}
-                            <div style={{padding:"14px 16px",background:"#fff"}}>
-                              <p style={{fontSize:13,color:"#374151",margin:"0 0 14px",lineHeight:1.7,whiteSpace:"pre-wrap",wordBreak:"break-word"}}>{sug.contenu}</p>
-                              {/* Actions */}
-                              {!isAccepted&&!isRejected?(
-                                <div style={{display:"flex",gap:8}}>
-                                  <button onClick={()=>validerSuggestion(sug._id,"acceptee")}
-                                    style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:6,padding:"9px",border:"none",borderRadius:8,background:"#16a34a",color:"#fff",fontSize:12,fontWeight:600,cursor:"pointer"}}>
-                                    <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path fillRule="evenodd" d={D.check}/></svg>
+
+                            <div style={{padding:"16px", background:"#fff"}}>
+                              <div style={{marginBottom:14}}>
+                                {renderContenuSuggestion(sug)}
+                              </div>
+
+                              {!isAccepted && !isRejected ? (
+                                <div style={{display:"flex", gap:8, paddingTop:14, borderTop:"1px solid #f1f5f9"}}>
+                                  <button
+                                    onClick={() => validerSuggestion(sug._id, "acceptee")}
+                                    style={{flex:1, display:"flex", alignItems:"center", justifyContent:"center", gap:6, padding:"10px", border:"none", borderRadius:8, background:"#16a34a", color:"#fff", fontSize:13, fontWeight:600, cursor:"pointer", transition:"background .12s"}}
+                                    onMouseEnter={e => e.currentTarget.style.background = "#15803d"}
+                                    onMouseLeave={e => e.currentTarget.style.background = "#16a34a"}
+                                  >
+                                    <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
+                                      <path fillRule="evenodd" d={D.check}/>
+                                    </svg>
                                     Accepter
                                   </button>
-                                  <button onClick={()=>validerSuggestion(sug._id,"rejetee")}
-                                    style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:6,padding:"9px",border:"1px solid #fecaca",borderRadius:8,background:"#fef2f2",color:"#b91c1c",fontSize:12,fontWeight:600,cursor:"pointer"}}>
-                                    <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path fillRule="evenodd" d={D.x}/></svg>
+                                  <button
+                                    onClick={() => validerSuggestion(sug._id, "rejetee")}
+                                    style={{flex:1, display:"flex", alignItems:"center", justifyContent:"center", gap:6, padding:"10px", border:"1px solid #fecaca", borderRadius:8, background:"#fff", color:"#b91c1c", fontSize:13, fontWeight:600, cursor:"pointer", transition:"background .12s"}}
+                                    onMouseEnter={e => e.currentTarget.style.background = "#fef2f2"}
+                                    onMouseLeave={e => e.currentTarget.style.background = "#fff"}
+                                  >
+                                    <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
+                                      <path fillRule="evenodd" d={D.x}/>
+                                    </svg>
                                     Rejeter
                                   </button>
                                 </div>
-                              ):(
-                                <div style={{display:"flex",alignItems:"center",gap:8,padding:"9px 14px",borderRadius:8,background:isAccepted?"#f0fdf4":"#fef2f2",border:`1px solid ${isAccepted?"#bbf7d0":"#fecaca"}`}}>
-                                  <svg width="13" height="13" viewBox="0 0 16 16" fill={isAccepted?"#15803d":"#b91c1c"}><path fillRule="evenodd" d={isAccepted?D.check:D.x}/></svg>
-                                  <span style={{fontSize:12,fontWeight:600,color:isAccepted?"#15803d":"#b91c1c"}}>{isAccepted?"Suggestion acceptée":"Suggestion rejetée"}</span>
+                              ) : (
+                                <div style={{display:"flex", alignItems:"center", gap:8, padding:"10px 14px", borderRadius:8, background: isAccepted ? "#f0fdf4" : "#fef2f2", border:`1px solid ${isAccepted ? "#bbf7d0" : "#fecaca"}`}}>
+                                  <svg width="13" height="13" viewBox="0 0 16 16" fill={isAccepted ? "#15803d" : "#b91c1c"}>
+                                    <path fillRule="evenodd" d={isAccepted ? D.check : D.x}/>
+                                  </svg>
+                                  <span style={{fontSize:12, fontWeight:600, color: isAccepted ? "#15803d" : "#b91c1c"}}>
+                                    {isAccepted ? "Suggestion acceptée" : "Suggestion rejetée"}
+                                  </span>
                                 </div>
                               )}
                             </div>
@@ -1178,7 +1254,6 @@ export default function TeamLeadDashboard() {
                       })}
                     </div>
 
-                    {/* Footer */}
                     <div style={{padding:"16px 24px",borderTop:"1px solid #f1f5f9",flexShrink:0}}>
                       <button onClick={fermerPanelIA} style={{width:"100%",padding:"10px",border:"1px solid #e5e7eb",borderRadius:8,background:"#f9fafb",cursor:"pointer",fontSize:13,color:"#374151",fontWeight:500}}>Fermer</button>
                     </div>

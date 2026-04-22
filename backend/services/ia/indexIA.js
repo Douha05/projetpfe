@@ -6,6 +6,8 @@ const { genererReponse }      = require('./reponseAutomatique');
 const Ticket                  = require('../../models/Ticket');
 const IaLog                   = require('../../models/IaLog');
 const IaSuggestion            = require('../../models/IaSuggestion');
+const Notification            = require('../../models/Notification');
+const User                    = require('../../models/User');
 
 const lancerAnalyseComplete = async (ticketId) => {
   console.log(`🤖 Début analyse IA — Ticket #${ticketId}`);
@@ -16,14 +18,9 @@ const lancerAnalyseComplete = async (ticketId) => {
     if (!ticket) throw new Error(`Ticket ${ticketId} introuvable`);
 
     const historique = await Ticket.find(
-      {
-        reporter: ticket.reporter,
-        _id:      { $ne: ticketId }
-      },
+      { reporter: ticket.reporter, _id: { $ne: ticketId } },
       'titre statut priorite type createdAt'
-    )
-    .sort({ createdAt: -1 })
-    .limit(10);
+    ).sort({ createdAt: -1 }).limit(10);
 
     // ── 1. Analyse historique ───────────────────────────────
     console.log(`📌 Étape 1/4 — Analyse historique`);
@@ -36,27 +33,49 @@ const lancerAnalyseComplete = async (ticketId) => {
     // ── 3. Assignation ──────────────────────────────────────
     console.log(`👤 Étape 3/4 — Assignation`);
     const assignation = await assignerTicket(ticket, classification.data);
+    console.log(`👤 agentId: ${assignation.data.agentId}, agentNom: ${assignation.data.agentNom}`);
 
     // ── 4. Réponse automatique ──────────────────────────────
     console.log(`💬 Étape 4/4 — Réponse automatique`);
-    const reponse = await genererReponse(
-      ticket,
-      classification.data,
-      analyse.data
-    );
+    const reponse = await genererReponse(ticket, classification.data, analyse.data);
 
     // ── 5. Mettre à jour le ticket ──────────────────────────
     await Ticket.findByIdAndUpdate(ticketId, {
-      resumeIa:               analyse.data.resume,
-      prioriteIa:             classification.data.priorite,
-      sentimentClient:        analyse.data.sentiment,
-      categorieIa:            classification.data.categorie,
-      assignee:               assignation.data.agentId,
-      assigneAutomatiquement: true,
-      iaTraite:               true
-    });
+  resumeIa:               analyse.data.resume,
+  prioriteIa:             classification.data.priorite,
+  sentimentClient:        analyse.data.sentiment,
+  categorieIa:            classification.data.categorie,
+  assignee:               assignation.data.agentId,
+  assigneAutomatiquement: !!assignation.data.agentId,  // true seulement si agentId existe
+  iaTraite:               true
+});
 
-    // ── 6. Sauvegarder les 4 suggestions ───────────────────
+    // ── 6. Notifier l'agent assigné ─────────────────────────
+    if (assignation.data.agentId) {
+      const agentNom = assignation.data.agentNom || "un agent";
+      await Notification.create({
+        destinataire: assignation.data.agentId,
+        ticket:       ticketId,
+        message:      `🤖 Ticket assigné automatiquement par l'IA : "${ticket.titre}"`,
+        type:         "ticket_assigne",
+        lu:           false
+      });
+    }
+
+    // ── 7. Notifier les team leads ──────────────────────────
+    const agentNom = assignation.data.agentNom || "un agent";
+    const teamLeads = await User.find({ role: "team_lead", isActive: true });
+    if (teamLeads.length > 0) {
+      await Notification.insertMany(teamLeads.map(tl => ({
+        destinataire: tl._id,
+        ticket:       ticketId,
+        message:      `🤖 IA a assigné "${ticket.titre}" à ${agentNom}`,
+        type:         "ticket_assigne",
+        lu:           false
+      })));
+    }
+
+    // ── 8. Sauvegarder les 4 suggestions ───────────────────
     await IaSuggestion.insertMany([
       {
         ticketId,
@@ -88,7 +107,7 @@ const lancerAnalyseComplete = async (ticketId) => {
       }
     ]);
 
-    // ── 7. Logger toutes les actions ────────────────────────
+    // ── 9. Logger toutes les actions ────────────────────────
     await IaLog.insertMany([
       {
         ticketId,

@@ -768,6 +768,10 @@ router.post("/:id/feedback", authMiddleware, async (req, res) => {
 // ============================================================
 // PUT /api/tickets/:id/modifier
 // ============================================================
+// ── 5. Mettre à jour le ticket ──────────────────────────
+// ============================================================
+// PUT /api/tickets/:id/modifier
+// ============================================================
 router.put("/:id/modifier", authMiddleware, upload.array("fichiers", 5), async (req, res) => {
   try {
     const ticket = await Ticket.findById(req.params.id);

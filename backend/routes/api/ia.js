@@ -9,18 +9,43 @@ const authMiddleware = require('../../middleware/authmiddleware');
 // ──────────────────────────────────────────────────────────
 // POST /api/ia/analyser/:ticketId
 // Lancer l'analyse complète d'un ticket
+//
+// PROTECTION : avant de créer les nouvelles suggestions,
+// on supprime les anciennes pour éviter les doublons.
+// Résultat : 1 ticket = exactement 4 suggestions (une par type).
 // ──────────────────────────────────────────────────────────
 router.post('/analyser/:ticketId', authMiddleware, async (req, res) => {
   try {
     const { ticketId } = req.params;
 
+    // ─── NETTOYAGE AVANT ANALYSE ───
+    // On supprime les anciennes suggestions et logs de succès
+    // de ce ticket avant de lancer la nouvelle analyse.
+    // Ça garantit qu'un ticket n'aura jamais plus de 4 suggestions.
+    const [suggestionsSupprimees, logsSupprimes] = await Promise.all([
+      IaSuggestion.deleteMany({ ticketId }),
+      IaLog.deleteMany({ ticketId, statut: 'succes' })
+    ]);
+
+    if (suggestionsSupprimees.deletedCount > 0) {
+      console.log(`[IA] Ticket ${ticketId} : ${suggestionsSupprimees.deletedCount} anciennes suggestions supprimées avant ré-analyse`);
+    }
+    if (logsSupprimes.deletedCount > 0) {
+      console.log(`[IA] Ticket ${ticketId} : ${logsSupprimes.deletedCount} anciens logs de succès supprimés`);
+    }
+
+    // ─── Lancer l'analyse IA complète ───
     const resultat = await lancerAnalyseComplete(ticketId);
 
     if (!resultat.succes) {
-      return res.status(500).json({ message: resultat.erreur });
+      return res.status(500).json({
+        succes:  false,
+        message: resultat.erreur
+      });
     }
 
     res.json({
+      succes:         true,
       message:        "Analyse IA terminée avec succès",
       analyse:        resultat.analyse,
       classification: resultat.classification,
@@ -29,7 +54,11 @@ router.post('/analyser/:ticketId', authMiddleware, async (req, res) => {
     });
 
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error(`[IA] Erreur analyse ticket ${req.params.ticketId}:`, err);
+    res.status(500).json({
+      succes:  false,
+      message: err.message
+    });
   }
 });
 
